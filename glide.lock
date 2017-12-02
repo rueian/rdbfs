@@ -1,0 +1,15 @@
+hash: b11e6abb57f767dced187b364fa644f5b46a051edadc0e3160b85b127ff4ce3b
+updated: 2017-12-02T02:30:25.110832+08:00
+imports:
+- name: github.com/hanwen/go-fuse
+  version: 66de2f17d31b22d3ea58fd1587619ab2eda87b79
+  subpackages:
+  - fuse
+  - splice
+- name: golang.org/x/sys
+  version: 8b4580aae2a0dd0c231a45d3ccb8434ff533b840
+  subpackages:
+  - unix
+- name: gopkg.in/yaml.v2
+  version: 287cf08546ab5e7e37d55a84f7ed3fd1db036de5
+testImports: []
