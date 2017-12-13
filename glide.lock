@@ -1,6 +1,8 @@
-hash: 1adc9a573c04226179ff58a23298d0e2376bd6b125596cf70c412d7810a18936
-updated: 2017-12-13T10:06:33.594036+08:00
+hash: 8da048b755689d3bf9e3167fe176bade138b764001fa1c513c61370c8083bd33
+updated: 2017-12-13T14:52:01.4364+08:00
 imports:
+- name: github.com/go-sql-driver/mysql
+  version: 9181e3a86a19bacd63e68d43ae8b7b36320d8092
 - name: github.com/hanwen/go-fuse
   version: 66de2f17d31b22d3ea58fd1587619ab2eda87b79
   subpackages:
@@ -10,10 +12,26 @@ imports:
   - splice
 - name: github.com/jinzhu/gorm
   version: 5174cc5c242a728b435ea2be8a2f7f998e15429b
+  subpackages:
+  - dialects/mysql
+  - dialects/postgres
+- name: github.com/jinzhu/inflection
+  version: 1c35d901db3da928c72a72d8458480cc9ade058f
+- name: github.com/lib/pq
+  version: 83612a56d3dd153a94a629cd64925371c9adad78
+  subpackages:
+  - hstore
+  - oid
+- name: github.com/urfave/cli
+  version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: golang.org/x/sys
   version: 53aa286056ef226755cd898109dbcdaba8ac0b81
   subpackages:
   - unix
+- name: google.golang.org/appengine
+  version: 9d8544a6b2c7df9cff240fcf92d7b2f59bc13416
+  subpackages:
+  - cloudsql
 - name: gopkg.in/yaml.v2
   version: 287cf08546ab5e7e37d55a84f7ed3fd1db036de5
 testImports: []

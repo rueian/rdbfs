@@ -1,59 +1,129 @@
 package main
 
 import (
-	"flag"
-	"log"
+	"os"
 
-	"github.com/hanwen/go-fuse/fuse"
+	"errors"
+
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
+	"github.com/rueian/rdbfs/filesystem"
+	"github.com/rueian/rdbfs/model"
+	"github.com/urfave/cli"
 )
 
-type RdbFs struct {
-	pathfs.FileSystem
-}
-
-func (fs *RdbFs) GetAttr(name string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
-	switch name {
-	case "file.txt":
-		return &fuse.Attr{
-			Mode: fuse.S_IFREG | 0644, Size: uint64(len(name)),
-		}, fuse.OK
-	case "":
-		return &fuse.Attr{
-			Mode: fuse.S_IFDIR | 0755,
-		}, fuse.OK
-	}
-	return nil, fuse.ENOENT
-}
-
-func (fs *RdbFs) OpenDir(name string, context *fuse.Context) (c []fuse.DirEntry, code fuse.Status) {
-	if name == "" {
-		c = []fuse.DirEntry{{Name: "file.txt", Mode: fuse.S_IFREG}}
-		return c, fuse.OK
-	}
-	return nil, fuse.ENOENT
-}
-
-func (fs *RdbFs) Open(name string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
-	if name != "file.txt" {
-		return nil, fuse.ENOENT
-	}
-	if flags&fuse.O_ANYWRITE != 0 {
-		return nil, fuse.EPERM
-	}
-	return nodefs.NewDataFile([]byte(name)), fuse.OK
-}
+var (
+	VERSION string
+)
 
 func main() {
-	flag.Parse()
-	if len(flag.Args()) < 1 {
-		log.Fatal("Usage:\n  rdbfs MOUNTPOINT")
+	app := cli.NewApp()
+	app.Name = "rdbfs"
+	app.Usage = "FUSE filesystem implemented with relational databases"
+	app.Version = VERSION
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:   "db-driver",
+			Usage:  "set database driver type",
+			Value:  "mysql",
+			EnvVar: "DB_DRIVER",
+		},
+		cli.StringFlag{
+			Name:   "db-url",
+			Usage:  "set database connection url",
+			EnvVar: "DB_URL",
+		},
 	}
-	nfs := pathfs.NewPathNodeFs(&RdbFs{FileSystem: pathfs.NewDefaultFileSystem()}, nil)
-	server, _, err := nodefs.MountRoot(flag.Arg(0), nfs.Root(), nil)
+	app.Commands = []cli.Command{
+		{
+			Name:      "start",
+			Usage:     "start the fuse server",
+			ArgsUsage: "mount-path",
+			Action:    startAction,
+		},
+		{
+			Name:   "init",
+			Usage:  "Initialize db table",
+			Action: initAction,
+		},
+		{
+			Name:   "drop",
+			Usage:  "Drop db table",
+			Action: dropAction,
+		},
+	}
+	app.Run(os.Args)
+}
+
+func getDao(c *cli.Context) (*model.Dao, error) {
+	dbDriver := c.GlobalString("db-driver")
+	if dbDriver == "" {
+		return nil, errors.New("no db driver given, see rdbfs start --help")
+	}
+
+	dbUrl := c.GlobalString("db-url")
+	if dbUrl == "" {
+		return nil, errors.New("no db url given, see rdbfs start --help")
+	}
+
+	dao, err := model.NewDao(dbDriver, dbUrl)
 	if err != nil {
-		log.Fatalf("Mount fail: %v\n", err)
+		return nil, err
+	}
+
+	return dao, nil
+}
+
+func startAction(c *cli.Context) error {
+	mountPath := c.Args().Get(0)
+	if mountPath == "" {
+		return cli.NewExitError("no mount path given, see rdbfs start --help", 1)
+	}
+
+	dao, err := getDao(c)
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	defer dao.Close()
+
+	if err := dao.AutoMigrate(); err != nil {
+		return cli.NewExitError(err, 1)
+	}
+
+	nfs := pathfs.NewPathNodeFs(&filesystem.RdbFs{FileSystem: pathfs.NewDefaultFileSystem(), Dao: dao}, nil)
+	server, _, err := nodefs.MountRoot(mountPath, nfs.Root(), nil)
+	if err != nil {
+		return cli.NewExitError(err, 1)
 	}
 	server.Serve()
+
+	return nil
+}
+
+func initAction(c *cli.Context) error {
+	dao, err := getDao(c)
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	defer dao.Close()
+
+	if err := dao.AutoMigrate(); err != nil {
+		return cli.NewExitError(err, 1)
+	}
+
+	return nil
+}
+
+func dropAction(c *cli.Context) error {
+	dao, err := getDao(c)
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	defer dao.Close()
+
+	if err := dao.DropTable(); err != nil {
+		return cli.NewExitError(err, 1)
+	}
+
+	return nil
 }
