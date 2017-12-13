@@ -44,7 +44,7 @@ func (d *Dao) GetAttr(path, name string) (*fuse.Attr, error) {
 
 func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 	var objects []*Object
-	if err := d.DbConn.Select("id, name, attr").Where("path = ?", path).Select(&objects).Error; err != nil {
+	if err := d.DbConn.Select("id, name, attr").Where("path = ?", path).Find(&objects).Error; err != nil {
 		return nil, err
 	}
 	return objects, nil
@@ -59,6 +59,57 @@ func (d *Dao) GetObject(path, name string) (*Object, error) {
 	object.Dao = d
 
 	return object, nil
+}
+
+func (d *Dao) CreateObject(path, name string, mode uint32) (*Object, error) {
+	object := &Object{
+		Dao:  d,
+		Path: path,
+		Name: name,
+		Attr: ObjectAttr{
+			Mode: mode,
+		},
+	}
+	if err := d.DbConn.Create(object).Error; err != nil {
+		return nil, err
+	}
+
+	return object, nil
+}
+
+func (d *Dao) RemoveObject(path, name string) error {
+	if err := d.DbConn.Where("path = ?", path).Where("name = ?", name).Delete(Object{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dao) RemoveSubTree(path string) error {
+	if err := d.DbConn.Where("path = ?", path).Delete(Object{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dao) RenameObject(oldPath, oldName, newPath, newName string) error {
+	if err := d.DbConn.Model(Object{}).Where("path = ?", oldPath).Where("name = ?", oldName).Updates(map[string]interface{}{
+		"path": newPath,
+		"name": newName,
+	}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dao) RenameSubTree(oldPath, newPath string) error {
+	if err := d.DbConn.Model(Object{}).Where("path = ?", oldPath).Update("path", newPath).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *Dao) ReadBytes(path, name string, dest []byte, off int64) ([]byte, error) {

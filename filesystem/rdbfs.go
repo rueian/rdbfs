@@ -17,6 +17,13 @@ type RdbFs struct {
 	Dao *model.Dao
 }
 
+func formatDirPath(path string) string {
+	if !strings.HasSuffix(path, "/") {
+		path = path + "/"
+	}
+	return path
+}
+
 func getPathAndNameFromFullPath(fullPath string) (string, string) {
 	if fullPath == "/" {
 		fullPath = ""
@@ -24,7 +31,7 @@ func getPathAndNameFromFullPath(fullPath string) (string, string) {
 
 	i := strings.LastIndex(fullPath, "/")
 
-	return fullPath[:i+1], fullPath[i+1:]
+	return formatDirPath(fullPath[:i+1]), fullPath[i+1:]
 }
 
 func convertDaoErr(err error) fuse.Status {
@@ -36,16 +43,14 @@ func convertDaoErr(err error) fuse.Status {
 }
 
 func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
+	path, name := getPathAndNameFromFullPath(fullPath)
+	fmt.Println("GetAttr: ", path, name)
 
-	if fullPath == "" {
+	if path == "/" && name == "" {
 		return &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0755,
 		}, fuse.OK
 	}
-
-	path, name := getPathAndNameFromFullPath(fullPath)
-
-	fmt.Println("GetAttr: ", path, name)
 
 	attr, err := fs.Dao.GetAttr(path, name)
 	if err != nil {
@@ -56,6 +61,7 @@ func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fu
 }
 
 func (fs *RdbFs) OpenDir(fullPath string, context *fuse.Context) (c []fuse.DirEntry, code fuse.Status) {
+	fullPath = formatDirPath(fullPath)
 	fmt.Println("OpenDir: ", fullPath)
 
 	objects, err := fs.Dao.GetSubTree(fullPath)
@@ -89,3 +95,66 @@ func (fs *RdbFs) Open(fullPath string, flags uint32, context *fuse.Context) (fil
 
 	return object, fuse.OK
 }
+
+func (fs *RdbFs) Mkdir(fullPath string, mode uint32, context *fuse.Context) fuse.Status {
+	path, name := getPathAndNameFromFullPath(fullPath)
+	fmt.Println("Mkdir: ", path, name)
+
+	_, err := fs.Dao.CreateObject(path, name, mode)
+	if err != nil {
+		return convertDaoErr(err)
+	}
+
+	return fuse.OK
+}
+
+func (fs *RdbFs) Rmdir(fullPath string, context *fuse.Context) fuse.Status {
+	path, name := getPathAndNameFromFullPath(fullPath)
+	fmt.Println("Rmdir: ", path, name)
+
+	err := fs.Dao.RemoveObject(path, name)
+	if err != nil {
+		return convertDaoErr(err)
+	}
+
+	err = fs.Dao.RemoveSubTree(path)
+	if err != nil {
+		return convertDaoErr(err)
+	}
+
+	return fuse.OK
+}
+
+func (fs *RdbFs) Rename(oldFullPath string, newFullPath string, context *fuse.Context) fuse.Status {
+	oldPath, oldName := getPathAndNameFromFullPath(oldFullPath)
+	newPath, newName := getPathAndNameFromFullPath(newFullPath)
+	fmt.Println("Rename: ", oldFullPath, newFullPath)
+
+	if err := fs.Dao.RenameObject(oldPath, oldName, newPath, newName); err != nil {
+		return convertDaoErr(err)
+	}
+
+	if err := fs.Dao.RenameSubTree(formatDirPath(oldFullPath), formatDirPath(newFullPath)); err != nil {
+		return convertDaoErr(err)
+	}
+
+	return fuse.OK
+}
+
+func (fs *RdbFs) Create(fullPath string, flags uint32, mode uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
+	path, name := getPathAndNameFromFullPath(fullPath)
+	fmt.Println("Create: ", path, name)
+
+	object, err := fs.Dao.CreateObject(path, name, mode)
+	if err != nil {
+		return nil, convertDaoErr(err)
+	}
+
+	return object, fuse.OK
+}
+
+//Chmod(name string, mode uint32, context *fuse.Context) (code fuse.Status)
+//Chown(name string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status)
+//Utimens(name string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status)
+//Truncate(name string, size uint64, context *fuse.Context) (code fuse.Status)
+//Access(name string, mode uint32, context *fuse.Context) (code fuse.Status)
