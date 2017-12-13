@@ -3,3 +3,5 @@ import:
 - package: github.com/hanwen/go-fuse
   version: 66de2f17d31b22d3ea58fd1587619ab2eda87b79
 - package: gopkg.in/yaml.v2
+- package: github.com/jinzhu/gorm
+  version: ~1.0.0
