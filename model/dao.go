@@ -10,6 +10,7 @@ import (
 )
 
 type Dao struct {
+	Driver string
 	DbConn *gorm.DB
 }
 
@@ -112,12 +113,47 @@ func (d *Dao) RenameSubTree(oldPath, newPath string) error {
 	return nil
 }
 
-func (d *Dao) ReadBytes(path, name string, dest []byte, off int64) ([]byte, error) {
-	return nil, nil
+func (d *Dao) ReadBytes(id uint, dest []byte, off int64) ([]byte, error) {
+	var err error
+	//if d.Driver == "postgres" {
+	//	err = d.DbConn.Model(Object{}).Where("id = ?", id).Select("substring(data from ? for ?)", off, len(dest)).Error
+	//}
+	//if d.Driver == "mysql" {
+	//	err = d.DbConn.Model(Object{}).Where("id = ?", id).Select("SUBSTRING(data, ?, ?)", off, len(dest)).Error
+	//}
+	//
+	//err = d.DbConn.Model(Object{}).Where("id = ?", id).Select("data").Error
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//var res []byte
+	//if err = d.DbConn.Row().Scan(&res); err != nil {
+	//	fmt.Print("KKKKKJ")
+	//	return nil, err
+	//}
+
+	object := Object{}
+	d.DbConn.Select("data").Where("id = ?", id).Find(&object)
+
+	return object.Data, err
 }
 
-func (d *Dao) WriteBytes(path, name string, data []byte, off int64) ([]byte, error) {
-	return nil, nil
+func (d *Dao) WriteBytes(id uint, data []byte, off int64) (uint32, error) {
+	var err error
+
+	if off == 0 {
+		err = d.DbConn.Model(Object{}).Where("id = ?", id).Update("data", data).Error
+	} else {
+		if d.Driver == "postgres" {
+			err = d.DbConn.Model(Object{}).Where("id = ?", id).Update("data", gorm.Expr("overlay(data placing ? from ?)", data, off)).Error
+		}
+		if d.Driver == "mysql" {
+			err = d.DbConn.Model(Object{}).Where("id = ?", id).Update("data", gorm.Expr("INSERT(data, ?, ?, ?)", off, len(data), data)).Error
+		}
+	}
+
+	return uint32(len(data)), err
 }
 
 var supportedDatabase = map[string]bool{
@@ -133,6 +169,6 @@ func NewDao(driver, url string) (*Dao, error) {
 	if dbConn, err := gorm.Open(driver, url); err != nil {
 		return nil, err
 	} else {
-		return &Dao{dbConn}, nil
+		return &Dao{driver, dbConn}, nil
 	}
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
+	"github.com/rueian/rdbfs/utils"
 )
 
 type ObjectAttr fuse.Attr
@@ -52,14 +53,24 @@ func (*Object) InnerFile() nodefs.File {
 	return nil
 }
 
-func (*Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
-	fmt.Println("implement Read")
-	return nil, fuse.OK
+func (o *Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
+	fmt.Println("Read", off, dest)
+	res, err := o.Dao.ReadBytes(o.ID, dest, off)
+	if err != nil {
+		return nil, utils.ConvertDaoErr(err)
+	}
+
+	return fuse.ReadResultData(res), fuse.OK
 }
 
-func (*Object) Write(data []byte, off int64) (written uint32, code fuse.Status) {
-	fmt.Println("implement Write")
-	return 0, fuse.OK
+func (o *Object) Write(data []byte, off int64) (written uint32, code fuse.Status) {
+	fmt.Println("Write", off, data)
+	c, err := o.Dao.WriteBytes(o.ID, data, off)
+	if err != nil {
+		return 0, utils.ConvertDaoErr(err)
+	}
+
+	return c, fuse.OK
 }
 
 func (*Object) Flock(flags int) fuse.Status {

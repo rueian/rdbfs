@@ -7,8 +7,8 @@ import (
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/hanwen/go-fuse/fuse/pathfs"
-	"github.com/jinzhu/gorm"
 	"github.com/rueian/rdbfs/model"
+	"github.com/rueian/rdbfs/utils"
 )
 
 type RdbFs struct {
@@ -34,14 +34,6 @@ func getPathAndNameFromFullPath(fullPath string) (string, string) {
 	return formatDirPath(fullPath[:i+1]), fullPath[i+1:]
 }
 
-func convertDaoErr(err error) fuse.Status {
-	if err == gorm.ErrRecordNotFound {
-		return fuse.ENOENT
-	}
-	fmt.Println(err)
-	return fuse.EIO
-}
-
 func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	path, name := getPathAndNameFromFullPath(fullPath)
 	fmt.Println("GetAttr: ", path, name)
@@ -54,7 +46,7 @@ func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fu
 
 	attr, err := fs.Dao.GetAttr(path, name)
 	if err != nil {
-		return nil, convertDaoErr(err)
+		return nil, utils.ConvertDaoErr(err)
 	}
 
 	return attr, fuse.OK
@@ -66,7 +58,7 @@ func (fs *RdbFs) OpenDir(fullPath string, context *fuse.Context) (c []fuse.DirEn
 
 	objects, err := fs.Dao.GetSubTree(fullPath)
 	if err != nil {
-		return nil, convertDaoErr(err)
+		return nil, utils.ConvertDaoErr(err)
 	}
 
 	for _, object := range objects {
@@ -90,7 +82,7 @@ func (fs *RdbFs) Open(fullPath string, flags uint32, context *fuse.Context) (fil
 
 	object, err := fs.Dao.GetObject(path, name)
 	if err != nil {
-		return nil, convertDaoErr(err)
+		return nil, utils.ConvertDaoErr(err)
 	}
 
 	return object, fuse.OK
@@ -102,7 +94,7 @@ func (fs *RdbFs) Mkdir(fullPath string, mode uint32, context *fuse.Context) fuse
 
 	_, err := fs.Dao.CreateObject(path, name, mode)
 	if err != nil {
-		return convertDaoErr(err)
+		return utils.ConvertDaoErr(err)
 	}
 
 	return fuse.OK
@@ -113,7 +105,7 @@ func (fs *RdbFs) Rmdir(fullPath string, context *fuse.Context) fuse.Status {
 	fmt.Println("Rmdir: ", path, name)
 
 	if err := fs.Dao.RemoveObject(path, name); err != nil {
-		return convertDaoErr(err)
+		return utils.ConvertDaoErr(err)
 	}
 	return fuse.OK
 }
@@ -124,11 +116,11 @@ func (fs *RdbFs) Rename(oldFullPath string, newFullPath string, context *fuse.Co
 	fmt.Println("Rename: ", oldFullPath, newFullPath)
 
 	if err := fs.Dao.RenameObject(oldPath, oldName, newPath, newName); err != nil {
-		return convertDaoErr(err)
+		return utils.ConvertDaoErr(err)
 	}
 
 	if err := fs.Dao.RenameSubTree(formatDirPath(oldFullPath), formatDirPath(newFullPath)); err != nil {
-		return convertDaoErr(err)
+		return utils.ConvertDaoErr(err)
 	}
 
 	return fuse.OK
@@ -140,7 +132,7 @@ func (fs *RdbFs) Create(fullPath string, flags uint32, mode uint32, context *fus
 
 	object, err := fs.Dao.CreateObject(path, name, mode)
 	if err != nil {
-		return nil, convertDaoErr(err)
+		return nil, utils.ConvertDaoErr(err)
 	}
 
 	return object, fuse.OK
@@ -151,7 +143,7 @@ func (fs *RdbFs) Unlink(fullPath string, context *fuse.Context) (code fuse.Statu
 	fmt.Println("Unlink: ", path, name)
 
 	if err := fs.Dao.RemoveObject(path, name); err != nil {
-		return convertDaoErr(err)
+		return utils.ConvertDaoErr(err)
 	}
 
 	return fuse.OK
