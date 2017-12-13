@@ -112,16 +112,9 @@ func (fs *RdbFs) Rmdir(fullPath string, context *fuse.Context) fuse.Status {
 	path, name := getPathAndNameFromFullPath(fullPath)
 	fmt.Println("Rmdir: ", path, name)
 
-	err := fs.Dao.RemoveObject(path, name)
-	if err != nil {
+	if err := fs.Dao.RemoveObject(path, name); err != nil {
 		return convertDaoErr(err)
 	}
-
-	err = fs.Dao.RemoveSubTree(path)
-	if err != nil {
-		return convertDaoErr(err)
-	}
-
 	return fuse.OK
 }
 
@@ -151,6 +144,17 @@ func (fs *RdbFs) Create(fullPath string, flags uint32, mode uint32, context *fus
 	}
 
 	return object, fuse.OK
+}
+
+func (fs *RdbFs) Unlink(fullPath string, context *fuse.Context) (code fuse.Status) {
+	path, name := getPathAndNameFromFullPath(fullPath)
+	fmt.Println("Unlink: ", path, name)
+
+	if err := fs.Dao.RemoveObject(path, name); err != nil {
+		return convertDaoErr(err)
+	}
+
+	return fuse.OK
 }
 
 //Chmod(name string, mode uint32, context *fuse.Context) (code fuse.Status)
