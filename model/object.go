@@ -53,7 +53,7 @@ func (*Object) InnerFile() nodefs.File {
 }
 
 func (o *Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
-	fmt.Println("Read", off, len(dest), string(dest))
+	fmt.Println("Read", off, len(dest))
 	res, err := o.Dao.ReadBytes(o.ID, dest, off)
 	if err != nil {
 		return nil, utils.ConvertDaoErr(err)
@@ -63,9 +63,7 @@ func (o *Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 }
 
 func (o *Object) Write(data []byte, off int64) (written uint32, code fuse.Status) {
-	if off != 0 {
-		fmt.Println("Write", off, len(data), string(data))
-	}
+	fmt.Println("Write", off, len(data))
 
 	written, err := o.Dao.WriteBytes(o.ID, data, off)
 	if err != nil {
