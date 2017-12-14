@@ -1,6 +1,7 @@
 package model
 
 import (
+	"database/sql"
 	"errors"
 
 	"github.com/hanwen/go-fuse/fuse"
@@ -43,8 +44,8 @@ func (d *Dao) GetAttr(path, name string) (*fuse.Attr, error) {
 	return &attr, nil
 }
 
-func (d *Dao) UpdateAttr(id uint, attr ObjectAttr) (error) {
-	if err := d.DbConn.Model(Object{}).Where("id = ?", id).Update("attr", attr).Error; err != nil {
+func (d *Dao) UpdateAttr(id uint, attr ObjectAttr) error {
+	if err := d.DbConn.Model(&Object{}).Where("id = ?", id).Update("attr", attr).Error; err != nil {
 		return err
 	}
 	return nil
@@ -113,7 +114,7 @@ func (d *Dao) RemoveSubTree(path string) error {
 }
 
 func (d *Dao) RenameObject(oldPath, oldName, newPath, newName string) error {
-	if err := d.DbConn.Model(Object{}).Where("path = ?", oldPath).Where("name = ?", oldName).Updates(map[string]interface{}{
+	if err := d.DbConn.Model(&Object{}).Where("path = ?", oldPath).Where("name = ?", oldName).Updates(map[string]interface{}{
 		"path": newPath,
 		"name": newName,
 	}).Error; err != nil {
@@ -124,7 +125,7 @@ func (d *Dao) RenameObject(oldPath, oldName, newPath, newName string) error {
 }
 
 func (d *Dao) RenameSubTree(oldPath, newPath string) error {
-	if err := d.DbConn.Model(Object{}).Where("path = ?", oldPath).Update("path", newPath).Error; err != nil {
+	if err := d.DbConn.Model(&Object{}).Where("path = ?", oldPath).Update("path", newPath).Error; err != nil {
 		return err
 	}
 
@@ -132,46 +133,49 @@ func (d *Dao) RenameSubTree(oldPath, newPath string) error {
 }
 
 func (d *Dao) ReadBytes(id uint, dest []byte, off int64) ([]byte, error) {
-	var err error
-	//if d.Driver == "postgres" {
-	//	err = d.DbConn.Model(Object{}).Where("id = ?", id).Select("substring(data from ? for ?)", off, len(dest)).Error
-	//}
-	//if d.Driver == "mysql" {
-	//	err = d.DbConn.Model(Object{}).Where("id = ?", id).Select("SUBSTRING(data, ?, ?)", off, len(dest)).Error
-	//}
-	//
-	//err = d.DbConn.Model(Object{}).Where("id = ?", id).Select("data").Error
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//var res []byte
-	//if err = d.DbConn.Row().Scan(&res); err != nil {
-	//	fmt.Print("KKKKKJ")
-	//	return nil, err
-	//}
+	var row *sql.Row
+	if d.Driver == "postgres" {
+		row = d.DbConn.Model(&Object{}).Where("id = ?", id).Select("substring(data from ? for ?)", off, len(dest)).Row()
+	}
+	if d.Driver == "mysql" {
+		row = d.DbConn.Model(&Object{}).Where("id = ?", id).Select("SUBSTRING(data, ?, ?)", off, len(dest)).Row()
+	}
 
-	object := Object{}
-	d.DbConn.Select("data").Where("id = ?", id).Find(&object)
+	if err := row.Scan(&dest); err != nil {
+		return nil, err
+	}
 
-	return object.Data, err
+	return dest, nil
 }
 
 func (d *Dao) WriteBytes(id uint, data []byte, off int64) (uint32, error) {
 	var err error
 
 	if off == 0 {
-		err = d.DbConn.Model(Object{}).Where("id = ?", id).Update("data", data).Error
+		err = d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", data).Error
 	} else {
 		if d.Driver == "postgres" {
-			err = d.DbConn.Model(Object{}).Where("id = ?", id).Update("data", gorm.Expr("overlay(data placing ? from ?)", data, off)).Error
+			err = d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("overlay(data placing ? from ?)", data, off)).Error
 		}
 		if d.Driver == "mysql" {
-			err = d.DbConn.Model(Object{}).Where("id = ?", id).Update("data", gorm.Expr("INSERT(data, ?, ?, ?)", off, len(data), data)).Error
+			err = d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("INSERT(data, ?, ?, ?)", off, len(data), data)).Error
 		}
 	}
 
 	return uint32(len(data)), err
+}
+
+func (d *Dao) Truncate(id uint, size uint64) error {
+	var err error
+
+	if d.Driver == "postgres" {
+		err = d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("substring(data from 0 for ?)", size)).Error
+	}
+	if d.Driver == "mysql" {
+		err = d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("SUBSTRING(data, 0, ?)", size)).Error
+	}
+
+	return err
 }
 
 var supportedDatabase = map[string]bool{

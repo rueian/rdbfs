@@ -1,13 +1,12 @@
 package model
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
-
-	"database/sql/driver"
-
-	"encoding/json"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
@@ -54,7 +53,7 @@ func (*Object) InnerFile() nodefs.File {
 }
 
 func (o *Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
-	fmt.Println("Read", off, dest)
+	fmt.Println("Read", off, len(dest), string(dest))
 	res, err := o.Dao.ReadBytes(o.ID, dest, off)
 	if err != nil {
 		return nil, utils.ConvertDaoErr(err)
@@ -64,18 +63,24 @@ func (o *Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 }
 
 func (o *Object) Write(data []byte, off int64) (written uint32, code fuse.Status) {
-	fmt.Println("Write", off, data)
-	c, err := o.Dao.WriteBytes(o.ID, data, off)
+	if off != 0 {
+		fmt.Println("Write", off, len(data), string(data))
+	}
 
+	written, err := o.Dao.WriteBytes(o.ID, data, off)
 	if err != nil {
-		return uint32(len(data)), utils.ConvertDaoErr(err)
-	}
-	o.Attr.Size = uint64(uint(len(data)))
-	if err = o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
-		return uint32(len(data)), utils.ConvertDaoErr(err)
+		return 0, utils.ConvertDaoErr(err)
 	}
 
-	return c, fuse.OK
+	position := uint64(off) + uint64(written)
+	if position > o.Attr.Size {
+		o.Attr.Size = position
+		if err = o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+			return 0, utils.ConvertDaoErr(err)
+		}
+	}
+
+	return written, fuse.OK
 }
 
 func (*Object) Flock(flags int) fuse.Status {
@@ -97,13 +102,29 @@ func (*Object) Fsync(flags int) (code fuse.Status) {
 	return fuse.OK
 }
 
-func (*Object) Truncate(size uint64) fuse.Status {
-	fmt.Println("implement Truncate")
+func (o *Object) Truncate(size uint64) fuse.Status {
+	fmt.Println("Truncate", size)
+
+	if err := o.Dao.Truncate(o.ID, size); err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	if size != o.Attr.Size {
+		o.Attr.Size = size
+		if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+			return utils.ConvertDaoErr(err)
+		}
+	}
+
 	return fuse.OK
 }
 
 func (o *Object) GetAttr(out *fuse.Attr) fuse.Status {
-	fmt.Println("implement GetAttr")
+	objValue := reflect.ValueOf(o.Attr)
+	outValue := reflect.ValueOf(out).Elem()
+	for i := 0; i < outValue.NumField(); i++ {
+		outValue.Field(i).Set(objValue.Field(i))
+	}
 	return fuse.OK
 }
 

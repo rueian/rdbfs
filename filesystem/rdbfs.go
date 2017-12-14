@@ -36,7 +36,7 @@ func getPathAndNameFromFullPath(fullPath string) (string, string) {
 
 func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	path, name := getPathAndNameFromFullPath(fullPath)
-	fmt.Println("GetAttr: ", path, name)
+	//fmt.Println("GetAttr: ", path, name)
 
 	if path == "/" && name == "" {
 		return &fuse.Attr{
@@ -54,7 +54,7 @@ func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fu
 
 func (fs *RdbFs) OpenDir(fullPath string, context *fuse.Context) (c []fuse.DirEntry, code fuse.Status) {
 	fullPath = formatDirPath(fullPath)
-	fmt.Println("OpenDir: ", fullPath)
+	//fmt.Println("OpenDir: ", fullPath)
 
 	objects, err := fs.Dao.GetSubTree(fullPath)
 	if err != nil {
@@ -75,10 +75,6 @@ func (fs *RdbFs) OpenDir(fullPath string, context *fuse.Context) (c []fuse.DirEn
 func (fs *RdbFs) Open(fullPath string, flags uint32, context *fuse.Context) (file nodefs.File, code fuse.Status) {
 	path, name := getPathAndNameFromFullPath(fullPath)
 	fmt.Println("Open: ", path, name)
-
-	if flags&fuse.O_ANYWRITE != 0 {
-		return nil, fuse.EPERM
-	}
 
 	object, err := fs.Dao.GetObject(path, name)
 	if err != nil {
@@ -149,8 +145,81 @@ func (fs *RdbFs) Unlink(fullPath string, context *fuse.Context) (code fuse.Statu
 	return fuse.OK
 }
 
-//Chmod(name string, mode uint32, context *fuse.Context) (code fuse.Status)
-//Chown(name string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status)
-//Utimens(name string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status)
-//Truncate(name string, size uint64, context *fuse.Context) (code fuse.Status)
-//Access(name string, mode uint32, context *fuse.Context) (code fuse.Status)
+func (fs *RdbFs) Truncate(fullPath string, size uint64, context *fuse.Context) (code fuse.Status) {
+	path, name := getPathAndNameFromFullPath(fullPath)
+
+	object, err := fs.Dao.GetObject(path, name)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	return object.Truncate(size)
+}
+
+//func (fs *RdbFs) String() string {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) SetDebug(debug bool) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) Chmod(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) Chown(name string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) Utimens(name string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) Link(oldName string, newName string, context *fuse.Context) (code fuse.Status) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) fuse.Status {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) GetXAttr(name string, attribute string, context *fuse.Context) (data []byte, code fuse.Status) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) ListXAttr(name string, context *fuse.Context) (attributes []string, code fuse.Status) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) OnMount(nodeFs *pathfs.PathNodeFs) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) OnUnmount() {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) Readlink(name string, context *fuse.Context) (string, fuse.Status) {
+//	panic("implement me")
+//}
+//
+//func (fs *RdbFs) StatFs(name string) *fuse.StatfsOut {
+//	panic("implement me")
+//}
