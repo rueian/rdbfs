@@ -43,6 +43,13 @@ func (d *Dao) GetAttr(path, name string) (*fuse.Attr, error) {
 	return &attr, nil
 }
 
+func (d *Dao) UpdateAttr(id uint, attr ObjectAttr) (error) {
+	if err := d.DbConn.Model(Object{}).Where("id = ?", id).Update("attr", attr).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 	var objects []*Object
 	if err := d.DbConn.Select("id, name, attr").Where("path = ?", path).Find(&objects).Error; err != nil {
@@ -54,6 +61,17 @@ func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 func (d *Dao) GetObject(path, name string) (*Object, error) {
 	object := &Object{}
 	if err := d.DbConn.Select("id, attr").Where("path = ?", path).Where("name = ?", name).First(object).Error; err != nil {
+		return nil, err
+	}
+
+	object.Dao = d
+
+	return object, nil
+}
+
+func (d *Dao) GetObjectById(id uint) (*Object, error) {
+	object := &Object{}
+	if err := d.DbConn.Select("id, attr").Where("id = ?", id).First(object).Error; err != nil {
 		return nil, err
 	}
 

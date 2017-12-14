@@ -66,8 +66,13 @@ func (o *Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 func (o *Object) Write(data []byte, off int64) (written uint32, code fuse.Status) {
 	fmt.Println("Write", off, data)
 	c, err := o.Dao.WriteBytes(o.ID, data, off)
+
 	if err != nil {
-		return 0, utils.ConvertDaoErr(err)
+		return uint32(len(data)), utils.ConvertDaoErr(err)
+	}
+	o.Attr.Size = uint64(uint(len(data)))
+	if err = o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return uint32(len(data)), utils.ConvertDaoErr(err)
 	}
 
 	return c, fuse.OK
