@@ -13,7 +13,9 @@ import (
 	"github.com/rueian/rdbfs/utils"
 )
 
-type ObjectAttr fuse.Attr
+type ObjectAttr struct {
+	fuse.Attr
+}
 
 func (a ObjectAttr) Value() (driver.Value, error) {
 	return json.Marshal(a)
@@ -118,7 +120,7 @@ func (o *Object) Truncate(size uint64) fuse.Status {
 }
 
 func (o *Object) GetAttr(out *fuse.Attr) fuse.Status {
-	objValue := reflect.ValueOf(o.Attr)
+	objValue := reflect.ValueOf(o.Attr.Attr)
 	outValue := reflect.ValueOf(out).Elem()
 	for i := 0; i < outValue.NumField(); i++ {
 		outValue.Field(i).Set(objValue.Field(i))

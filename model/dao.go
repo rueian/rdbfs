@@ -39,9 +39,7 @@ func (d *Dao) GetAttr(path, name string) (*fuse.Attr, error) {
 		return &fuse.Attr{}, err
 	}
 
-	attr := fuse.Attr(object.Attr)
-
-	return &attr, nil
+	return &(object.Attr.Attr), nil
 }
 
 func (d *Dao) UpdateAttr(id uint, attr ObjectAttr) error {
@@ -87,7 +85,9 @@ func (d *Dao) CreateObject(path, name string, mode uint32) (*Object, error) {
 		Path: path,
 		Name: name,
 		Attr: ObjectAttr{
-			Mode: mode,
+			fuse.Attr{
+				Mode: mode,
+			},
 		},
 	}
 	if err := d.DbConn.Create(object).Error; err != nil {
