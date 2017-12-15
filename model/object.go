@@ -15,7 +15,7 @@ import (
 )
 
 // the larger the faster
-var sync_size = 81920000
+var syncSize = 81920000
 
 type ObjectAttr struct {
 	fuse.Attr
@@ -26,12 +26,12 @@ func (a ObjectAttr) Value() (driver.Value, error) {
 }
 
 func (a *ObjectAttr) Scan(src interface{}) error {
-	bytes, ok := src.([]byte)
+	b, ok := src.([]byte)
 	if !ok {
 		return errors.New(fmt.Sprint("Failed to unmarshal JSON value:", src))
 	}
 
-	return json.Unmarshal(bytes, a)
+	return json.Unmarshal(b, a)
 }
 
 type Object struct {
@@ -43,9 +43,9 @@ type Object struct {
 	Attr       ObjectAttr `gorm:"type:json"`
 	Xattr      []byte
 	Data       []byte
-	FBuffer    bytes.Buffer
-	FBufOffset int64
-	CurrOffset int64
+	FBuffer    bytes.Buffer `gorm:"-"`
+	FBufOffset int64        `gorm:"-"`
+	CurrOffset int64        `gorm:"-"`
 }
 
 func (*Object) SetInode(*nodefs.Inode) {
@@ -77,7 +77,7 @@ func (o *Object) Write(data []byte, off int64) (written uint32, code fuse.Status
 	o.CurrOffset = off
 	over := int(o.CurrOffset - o.FBufOffset)
 	if o.CurrOffset > o.FBufOffset && over <= o.FBuffer.Len() {
-		// clear unchekced data start from FBufOffset
+		// clear unchecked data start from FBufOffset
 		o.FBuffer.Truncate(over)
 	} else if o.FBuffer.Len() == 0 {
 		// all the previous data has been written into DB
@@ -85,20 +85,20 @@ func (o *Object) Write(data []byte, off int64) (written uint32, code fuse.Status
 	}
 
 	// write into per object buffer
-	len, err := o.FBuffer.Write(data)
+	n, err := o.FBuffer.Write(data)
 	if err != nil {
 		return 0, utils.ConvertDaoErr(err)
 	}
 
 	// if the buffer is large enough to be written into DB
-	if o.FBuffer.Len() > sync_size {
+	if o.FBuffer.Len() > syncSize {
 		status := o.Flush()
 		if status != fuse.OK {
 			return 0, status
 		}
 	}
 
-	return uint32(len), fuse.OK
+	return uint32(n), fuse.OK
 }
 
 func (*Object) Flock(flags int) fuse.Status {
