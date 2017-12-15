@@ -34,18 +34,33 @@ func (a *ObjectAttr) Scan(src interface{}) error {
 	return json.Unmarshal(b, a)
 }
 
+type ObjectXattr map[string]string
+
+func (a ObjectXattr) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
+
+func (a *ObjectXattr) Scan(src interface{}) error {
+	b, ok := src.([]byte)
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal JSON value:", src))
+	}
+
+	return json.Unmarshal(b, a)
+}
+
 type Object struct {
 	nodefs.File
-	Dao        *Dao       `gorm:"-"`
-	ID         uint       `gorm:"primary_key"`
-	Path       string     `gorm:"unique_index:idx_path_name"`
-	Name       string     `gorm:"unique_index:idx_path_name"`
-	Attr       ObjectAttr `gorm:"type:json"`
-	Xattr      []byte
-	Data       []byte
+	Dao        *Dao         `gorm:"-"`
 	FBuffer    bytes.Buffer `gorm:"-"`
 	FBufOffset int64        `gorm:"-"`
 	CurrOffset int64        `gorm:"-"`
+	ID         uint         `gorm:"primary_key"`
+	Path       string       `gorm:"unique_index:idx_path_name"`
+	Name       string       `gorm:"unique_index:idx_path_name"`
+	Attr       ObjectAttr   `gorm:"type:json"`
+	Xattr      ObjectXattr  `gorm:"type:json"`
+	Data       []byte
 }
 
 func (*Object) SetInode(*nodefs.Inode) {

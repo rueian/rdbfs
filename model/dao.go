@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 
+	"time"
+
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -49,6 +51,13 @@ func (d *Dao) UpdateAttr(id uint, attr ObjectAttr) error {
 	return nil
 }
 
+func (d *Dao) UpdateXattr(id uint, xattr map[string]string) error {
+	if err := d.DbConn.Model(&Object{}).Where("id = ?", id).Update("xattr", xattr).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 	var objects []*Object
 	if err := d.DbConn.Select("id, name, attr").Where("path = ?", path).Find(&objects).Error; err != nil {
@@ -59,7 +68,7 @@ func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 
 func (d *Dao) GetObject(path, name string) (*Object, error) {
 	object := &Object{}
-	if err := d.DbConn.Select("id, attr").Where("path = ?", path).Where("name = ?", name).First(object).Error; err != nil {
+	if err := d.DbConn.Select("id, attr, xattr").Where("path = ?", path).Where("name = ?", name).First(object).Error; err != nil {
 		return nil, err
 	}
 
@@ -70,7 +79,7 @@ func (d *Dao) GetObject(path, name string) (*Object, error) {
 
 func (d *Dao) GetObjectById(id uint) (*Object, error) {
 	object := &Object{}
-	if err := d.DbConn.Select("id, attr").Where("id = ?", id).First(object).Error; err != nil {
+	if err := d.DbConn.Select("id, attr, xattr").Where("id = ?", id).First(object).Error; err != nil {
 		return nil, err
 	}
 
@@ -90,6 +99,9 @@ func (d *Dao) CreateObject(path, name string, mode uint32) (*Object, error) {
 			},
 		},
 	}
+
+	now := time.Now()
+	object.Attr.SetTimes(&now, &now, &now)
 	if err := d.DbConn.Create(object).Error; err != nil {
 		return nil, err
 	}

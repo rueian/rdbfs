@@ -188,21 +188,71 @@ func (fs *RdbFs) Truncate(fullPath string, size uint64, context *fuse.Context) (
 //	panic("implement me")
 //}
 //
-//func (fs *RdbFs) GetXAttr(name string, attribute string, context *fuse.Context) (data []byte, code fuse.Status) {
-//	panic("implement me")
-//}
-//
-//func (fs *RdbFs) ListXAttr(name string, context *fuse.Context) (attributes []string, code fuse.Status) {
-//	panic("implement me")
-//}
-//
-//func (fs *RdbFs) RemoveXAttr(name string, attr string, context *fuse.Context) fuse.Status {
-//	panic("implement me")
-//}
-//
-//func (fs *RdbFs) SetXAttr(name string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
-//	panic("implement me")
-//}
+func (fs *RdbFs) GetXAttr(fullPath string, attribute string, context *fuse.Context) (data []byte, code fuse.Status) {
+	path, name := getPathAndNameFromFullPath(fullPath)
+
+	object, err := fs.Dao.GetObject(path, name)
+	if err != nil {
+		return nil, utils.ConvertDaoErr(err)
+	}
+
+	return []byte(object.Xattr[attribute]), fuse.OK
+}
+
+func (fs *RdbFs) ListXAttr(fullPath string, context *fuse.Context) (attributes []string, code fuse.Status) {
+	path, name := getPathAndNameFromFullPath(fullPath)
+
+	object, err := fs.Dao.GetObject(path, name)
+	if err != nil {
+		return nil, utils.ConvertDaoErr(err)
+	}
+
+	for k := range object.Xattr {
+		attributes = append(attributes, k)
+	}
+
+	return attributes, fuse.OK
+}
+
+func (fs *RdbFs) RemoveXAttr(fullPath string, attr string, context *fuse.Context) fuse.Status {
+	path, name := getPathAndNameFromFullPath(fullPath)
+
+	object, err := fs.Dao.GetObject(path, name)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	delete(object.Xattr, attr)
+
+	err = fs.Dao.UpdateXattr(object.ID, object.Xattr)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	return fuse.OK
+}
+
+func (fs *RdbFs) SetXAttr(fullPath string, attr string, data []byte, flags int, context *fuse.Context) fuse.Status {
+	path, name := getPathAndNameFromFullPath(fullPath)
+
+	object, err := fs.Dao.GetObject(path, name)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	if object.Xattr == nil {
+		object.Xattr = model.ObjectXattr{}
+	}
+	object.Xattr[attr] = string(data)
+
+	err = fs.Dao.UpdateXattr(object.ID, object.Xattr)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	return fuse.OK
+}
+
 //
 //func (fs *RdbFs) OnMount(nodeFs *pathfs.PathNodeFs) {
 //	panic("implement me")
