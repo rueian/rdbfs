@@ -1,6 +1,7 @@
 package model
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,9 @@ import (
 	"github.com/hanwen/go-fuse/fuse/nodefs"
 	"github.com/rueian/rdbfs/utils"
 )
+
+// the larger the faster
+var sync_size = 81920000
 
 type ObjectAttr struct {
 	fuse.Attr
@@ -32,13 +36,16 @@ func (a *ObjectAttr) Scan(src interface{}) error {
 
 type Object struct {
 	nodefs.File
-	Dao   *Dao       `gorm:"-"`
-	ID    uint       `gorm:"primary_key"`
-	Path  string     `gorm:"unique_index:idx_path_name"`
-	Name  string     `gorm:"unique_index:idx_path_name"`
-	Attr  ObjectAttr `gorm:"type:json"`
-	Xattr []byte
-	Data  []byte
+	Dao        *Dao       `gorm:"-"`
+	ID         uint       `gorm:"primary_key"`
+	Path       string     `gorm:"unique_index:idx_path_name"`
+	Name       string     `gorm:"unique_index:idx_path_name"`
+	Attr       ObjectAttr `gorm:"type:json"`
+	Xattr      []byte
+	Data       []byte
+	FBuffer    bytes.Buffer
+	FBufOffset int64
+	CurrOffset int64
 }
 
 func (*Object) SetInode(*nodefs.Inode) {
@@ -67,20 +74,31 @@ func (o *Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 func (o *Object) Write(data []byte, off int64) (written uint32, code fuse.Status) {
 	fmt.Println("Write", off, len(data))
 
-	written, err := o.Dao.WriteBytes(o.ID, data, off)
+	o.CurrOffset = off
+	over := int(o.CurrOffset - o.FBufOffset)
+	if o.CurrOffset > o.FBufOffset && over <= o.FBuffer.Len() {
+		// clear unchekced data start from FBufOffset
+		o.FBuffer.Truncate(over)
+	} else if o.FBuffer.Len() == 0 {
+		// all the previous data has been written into DB
+		o.FBufOffset = o.CurrOffset
+	}
+
+	// write into per object buffer
+	len, err := o.FBuffer.Write(data)
 	if err != nil {
 		return 0, utils.ConvertDaoErr(err)
 	}
 
-	position := uint64(off) + uint64(written)
-	if position > o.Attr.Size {
-		o.Attr.Size = position
-		if err = o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
-			return 0, utils.ConvertDaoErr(err)
+	// if the buffer is large enough to be written into DB
+	if o.FBuffer.Len() > sync_size {
+		status := o.Flush()
+		if status != fuse.OK {
+			return 0, status
 		}
 	}
 
-	return written, fuse.OK
+	return uint32(len), fuse.OK
 }
 
 func (*Object) Flock(flags int) fuse.Status {
@@ -88,17 +106,36 @@ func (*Object) Flock(flags int) fuse.Status {
 	return fuse.OK
 }
 
-func (*Object) Flush() fuse.Status {
-	fmt.Println("implement Flush")
-	return fuse.OK
+func (o *Object) Flush() fuse.Status {
+	fmt.Println("Flush (temporarily call Fsync())")
+	return o.Fsync(0)
 }
 
 func (*Object) Release() {
 	fmt.Println("implement Release")
 }
 
-func (*Object) Fsync(flags int) (code fuse.Status) {
-	fmt.Println("implement Fsync")
+func (o *Object) Fsync(flags int) (code fuse.Status) {
+	fmt.Println("Fsync", int64(o.FBuffer.Len()))
+
+	// write the data in per object buffer into DB
+	written, err := o.Dao.WriteBytes(o.ID, o.FBuffer.Bytes(), o.FBufOffset)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	if written != 0 {
+		o.Attr.Size = uint64(written) + uint64(o.FBufOffset)
+	}
+
+	o.FBufOffset = o.CurrOffset
+	o.CurrOffset = 0
+	o.FBuffer.Reset()
+
+	if err = o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
 	return fuse.OK
 }
 
