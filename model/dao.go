@@ -146,12 +146,8 @@ func (d *Dao) RenameSubTree(oldPath, newPath string) error {
 
 func (d *Dao) ReadBytes(id uint, dest []byte, off int64) ([]byte, error) {
 	var row *sql.Row
-	if d.Driver == "postgres" {
-		row = d.DbConn.Model(&Object{}).Where("id = ?", id).Select("substring(data from ? for ?)", off, len(dest)).Row()
-	}
-	if d.Driver == "mysql" {
-		row = d.DbConn.Model(&Object{}).Where("id = ?", id).Select("SUBSTRING(data, ?, ?)", off, len(dest)).Row()
-	}
+
+	row = d.DbConn.Model(&Object{}).Where("id = ?", id).Select("substring(data, ?, ?)", off+1, len(dest)).Row()
 
 	if err := row.Scan(&dest); err != nil {
 		return nil, err
