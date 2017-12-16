@@ -133,13 +133,13 @@ func (*Object) Release() {
 func (o *Object) Fsync(flags int) (code fuse.Status) {
 	fmt.Println("Fsync", int64(o.FBuffer.Len()))
 
-	// write the data in per object buffer into DB
-	written, err := o.Dao.WriteBytes(o.ID, o.FBuffer.Bytes(), o.FBufOffset)
-	if err != nil {
-		return utils.ConvertDaoErr(err)
-	}
+	if o.FBuffer.Len() != 0 {
+		// write the data in per object buffer into DB
+		written, err := o.Dao.WriteBytes(o.ID, o.FBuffer.Bytes(), o.FBufOffset)
+		if err != nil {
+			return utils.ConvertDaoErr(err)
+		}
 
-	if written != 0 {
 		o.Attr.Size = uint64(written) + uint64(o.FBufOffset)
 	}
 
@@ -147,7 +147,7 @@ func (o *Object) Fsync(flags int) (code fuse.Status) {
 	o.CurrOffset = 0
 	o.FBuffer.Reset()
 
-	if err = o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
 		return utils.ConvertDaoErr(err)
 	}
 
