@@ -8,6 +8,7 @@ import (
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/jinzhu/gorm"
+	"github.com/satori/go.uuid"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -58,6 +59,13 @@ func (d *Dao) UpdateXattr(id uint, xattr map[string]string) error {
 	return nil
 }
 
+func (d *Dao) Link(fid uint, tid uint) error {
+	if err := d.DbConn.Model(&Object{}).Where("id = ?", fid).Update("link_id", tid).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 	var objects []*Object
 	if err := d.DbConn.Select("id, name, attr").Where("path = ?", path).Find(&objects).Error; err != nil {
@@ -68,8 +76,17 @@ func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 
 func (d *Dao) GetObject(path, name string) (*Object, error) {
 	object := &Object{}
-	if err := d.DbConn.Select("id, attr, xattr").Where("path = ?", path).Where("name = ?", name).First(object).Error; err != nil {
+	if err := d.DbConn.Select("id, attr, xattr, link_id").Where("path = ?", path).Where("name = ?", name).First(object).Error; err != nil {
 		return nil, err
+	}
+
+	// Follow links chain
+	for object.LinkID != 0 {
+		obj, err := d.GetObjectById(uint(object.LinkID))
+		if err != nil {
+			return nil, err
+		}
+		object = obj
 	}
 
 	object.Dao = d
@@ -79,7 +96,7 @@ func (d *Dao) GetObject(path, name string) (*Object, error) {
 
 func (d *Dao) GetObjectById(id uint) (*Object, error) {
 	object := &Object{}
-	if err := d.DbConn.Select("id, attr, xattr").Where("id = ?", id).First(object).Error; err != nil {
+	if err := d.DbConn.Select("id, attr, xattr, link_id").Where("id = ?", id).First(object).Error; err != nil {
 		return nil, err
 	}
 
@@ -106,11 +123,47 @@ func (d *Dao) CreateObject(path, name string, mode uint32) (*Object, error) {
 		return nil, err
 	}
 
+
 	return object, nil
+}
+
+// Unlink from fs
+func (d *Dao) UnlinkName(path, name string) error {
+	if err := d.DbConn.Model(Object{}).Where("path = ?", path).Where("name = ?", name).Update(map[string]interface{}{
+		"path": "..",
+		"name": uuid.NewV4(),
+	}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dao) HasLinkedObject(path, name string) (bool, error) {
+	//d.DbConn.LogMode(true)
+
+	fakeObj := Object{}
+	err := d.DbConn.Select("count(*) as link_id").Joins("inner join objects as o2 on objects.id = o2.link_id").Where("objects.path = ?", path).Where("objects.name = ?", name).Group("objects.id").First(&fakeObj).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return fakeObj.LinkID > 0, nil
 }
 
 func (d *Dao) RemoveObject(path, name string) error {
 	if err := d.DbConn.Where("path = ?", path).Where("name = ?", name).Delete(Object{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dao) RemoveObjectById(id uint) error {
+	if err := d.DbConn.Where("id = ?", id).Delete(Object{}).Error; err != nil {
 		return err
 	}
 
