@@ -230,16 +230,7 @@ func (d *Dao) WriteBytes(id uint, data []byte, off int64) (uint32, error) {
 }
 
 func (d *Dao) Truncate(id uint, size uint64) error {
-	var err error
-
-	if d.Driver == "postgres" {
-		err = d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("substring(data from 0 for ?)", size)).Error
-	}
-	if d.Driver == "mysql" {
-		err = d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("SUBSTRING(data, 0, ?)", size)).Error
-	}
-
-	return err
+	return d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("SUBSTRING(data, 1, ?)", size)).Error
 }
 
 var supportedDatabase = map[string]bool{
