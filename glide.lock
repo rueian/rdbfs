@@ -1,5 +1,5 @@
-hash: 8da048b755689d3bf9e3167fe176bade138b764001fa1c513c61370c8083bd33
-updated: 2017-12-13T14:52:01.4364+08:00
+hash: 8996351d882a693442c31985ae5841d7c86bf56820f2983ddfff5a4821d429ce
+updated: 2017-12-17T21:44:57.94646+08:00
 imports:
 - name: github.com/go-sql-driver/mysql
   version: 9181e3a86a19bacd63e68d43ae8b7b36320d8092
@@ -22,6 +22,8 @@ imports:
   subpackages:
   - hstore
   - oid
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/urfave/cli
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 - name: golang.org/x/sys

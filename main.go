@@ -89,8 +89,8 @@ func startAction(c *cli.Context) error {
 	if err := dao.AutoMigrate(); err != nil {
 		return cli.NewExitError(err, 1)
 	}
-
-	nfs := pathfs.NewPathNodeFs(&filesystem.RdbFs{FileSystem: pathfs.NewDefaultFileSystem(), Dao: dao}, nil)
+	// ClientInodes for supporting hardlink
+	nfs := pathfs.NewPathNodeFs(&filesystem.RdbFs{FileSystem: pathfs.NewDefaultFileSystem(), Dao: dao}, &pathfs.PathNodeFsOptions{ClientInodes: true})
 	server, _, err := nodefs.MountRoot(mountPath, nfs.Root(), nil)
 	if err != nil {
 		return cli.NewExitError(err, 1)

@@ -3,13 +3,14 @@ package model
 import (
 	"database/sql"
 	"errors"
-
+	"fmt"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/satori/go.uuid"
 )
 
 type Dao struct {
@@ -40,7 +41,6 @@ func (d *Dao) GetAttr(path, name string) (*fuse.Attr, error) {
 	if err != nil {
 		return &fuse.Attr{}, err
 	}
-
 	return &(object.Attr.Attr), nil
 }
 
@@ -58,6 +58,13 @@ func (d *Dao) UpdateXattr(id uint, xattr map[string]string) error {
 	return nil
 }
 
+func (d *Dao) Link(fid uint, tid uint) error {
+	if err := d.DbConn.Model(&Object{}).Where("id = ?", fid).Update("link_id", tid).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 	var objects []*Object
 	if err := d.DbConn.Select("id, name, attr").Where("path = ?", path).Find(&objects).Error; err != nil {
@@ -66,10 +73,27 @@ func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 	return objects, nil
 }
 
+func (d *Dao) GetLinkId(path, name string) (int64, error) {
+	object := &Object{}
+	if err := d.DbConn.Select("link_id").Where("path = ?", path).Where("name = ?", name).First(object).Error; err != nil {
+		return 0, err
+	}
+	return object.LinkID, nil
+}
+
 func (d *Dao) GetObject(path, name string) (*Object, error) {
 	object := &Object{}
-	if err := d.DbConn.Select("id, attr, xattr").Where("path = ?", path).Where("name = ?", name).First(object).Error; err != nil {
+	if err := d.DbConn.Select("id, attr, xattr, link_id").Where("path = ?", path).Where("name = ?", name).First(object).Error; err != nil {
 		return nil, err
+	}
+
+	// Follow links chain
+	for object.LinkID != 0 {
+		obj, err := d.GetObjectById(uint(object.LinkID))
+		if err != nil {
+			return nil, err
+		}
+		object = obj
 	}
 
 	object.Dao = d
@@ -79,7 +103,7 @@ func (d *Dao) GetObject(path, name string) (*Object, error) {
 
 func (d *Dao) GetObjectById(id uint) (*Object, error) {
 	object := &Object{}
-	if err := d.DbConn.Select("id, attr, xattr").Where("id = ?", id).First(object).Error; err != nil {
+	if err := d.DbConn.Select("id, attr, xattr, link_id").Where("id = ?", id).First(object).Error; err != nil {
 		return nil, err
 	}
 
@@ -109,8 +133,40 @@ func (d *Dao) CreateObject(path, name string, mode uint32) (*Object, error) {
 	return object, nil
 }
 
+// Unlink from fs
+func (d *Dao) UnlinkName(path, name string) error {
+	if err := d.DbConn.Model(Object{}).Where("path = ?", path).Where("name = ?", name).Update(map[string]interface{}{
+		"path": "..",
+		"name": uuid.NewV4(),
+	}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dao) HasLinkedObject(path, name string) (bool, error) {
+	count := 0
+	err := d.DbConn.Model(Object{}).Where("link_id = ?", gorm.Expr("(select id from objects where path = ? and name = ?)", path, name)).Count(&count).Error
+	// d.DbConn.Table("objects").Select("id").Where("path = ?", path).Where("name = ?", name).QueryExpr()
+	fmt.Println("HasLinkedObject", count)
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
 func (d *Dao) RemoveObject(path, name string) error {
 	if err := d.DbConn.Where("path = ?", path).Where("name = ?", name).Delete(Object{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dao) RemoveObjectById(id uint) error {
+	if err := d.DbConn.Where("id = ?", id).Delete(Object{}).Error; err != nil {
 		return err
 	}
 
@@ -174,16 +230,7 @@ func (d *Dao) WriteBytes(id uint, data []byte, off int64) (uint32, error) {
 }
 
 func (d *Dao) Truncate(id uint, size uint64) error {
-	var err error
-
-	if d.Driver == "postgres" {
-		err = d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("substring(data from 0 for ?)", size)).Error
-	}
-	if d.Driver == "mysql" {
-		err = d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("SUBSTRING(data, 0, ?)", size)).Error
-	}
-
-	return err
+	return d.DbConn.Model(&Object{}).Where("id = ?", id).Update("data", gorm.Expr("SUBSTRING(data, 1, ?)", size)).Error
 }
 
 var supportedDatabase = map[string]bool{

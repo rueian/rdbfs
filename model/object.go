@@ -58,12 +58,13 @@ type Object struct {
 	ID         uint         `gorm:"primary_key"`
 	Path       string       `gorm:"unique_index:idx_path_name"`
 	Name       string       `gorm:"unique_index:idx_path_name"`
+	LinkID     int64        `gorm:"index:idx_link_id"`
 	Attr       ObjectAttr   `gorm:"type:json"`
 	Xattr      ObjectXattr  `gorm:"type:json"`
 	Data       []byte
 }
 
-func (*Object) SetInode(*nodefs.Inode) {
+func (o *Object) SetInode(node *nodefs.Inode) {
 	fmt.Println("SetInode")
 }
 
