@@ -151,13 +151,13 @@ func (fs *RdbFs) Unlink(fullPath string, context *fuse.Context) (code fuse.Statu
 			return utils.ConvertDaoErr(err)
 		}
 	} else {
-		obj, err := fs.Dao.GetObject(path, name)
+		linkTo, err := fs.Dao.GetLinkId(path, name)
 		if err != nil {
 			return utils.ConvertDaoErr(err)
 		}
 		// Last one link to object, remove old object too
-		if obj.LinkID != 0 {
-			err = fs.Dao.RemoveObjectById(uint(obj.LinkID))
+		if linkTo != 0 {
+			err = fs.Dao.RemoveObjectById(uint(linkTo))
 			if err != nil {
 				return utils.ConvertDaoErr(err)
 			}

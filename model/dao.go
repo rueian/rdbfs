@@ -11,6 +11,7 @@ import (
 	"github.com/satori/go.uuid"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"fmt"
 )
 
 type Dao struct {
@@ -72,6 +73,14 @@ func (d *Dao) GetSubTree(path string) ([]*Object, error) {
 		return nil, err
 	}
 	return objects, nil
+}
+
+func (d *Dao) GetLinkId(path, name string) (int64, error) {
+	object := &Object{}
+	if err := d.DbConn.Select("link_id").Where("path = ?", path).Where("name = ?", name).First(object).Error; err != nil {
+		return 0, err
+	}
+	return object.LinkID, nil
 }
 
 func (d *Dao) GetObject(path, name string) (*Object, error) {
@@ -140,18 +149,15 @@ func (d *Dao) UnlinkName(path, name string) error {
 }
 
 func (d *Dao) HasLinkedObject(path, name string) (bool, error) {
-	//d.DbConn.LogMode(true)
-
-	fakeObj := Object{}
-	err := d.DbConn.Select("count(*) as link_id").Joins("inner join objects as o2 on objects.id = o2.link_id").Where("objects.path = ?", path).Where("objects.name = ?", name).Group("objects.id").First(&fakeObj).Error
+	count := 0
+	err := d.DbConn.Model(Object{}).Where("link_id = ?", gorm.Expr("(select id from objects where path=? and name=?)", path, name)).Count(&count).Error
+	// d.DbConn.Table("objects").Select("id").Where("path = ?", path).Where("name = ?", name).QueryExpr()
+	fmt.Println("HasLinkedObject", count)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return false, nil
-		}
 		return false, err
 	}
 
-	return fakeObj.LinkID > 0, nil
+	return count > 0, nil
 }
 
 func (d *Dao) RemoveObject(path, name string) error {

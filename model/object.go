@@ -64,7 +64,7 @@ type Object struct {
 	Data       []byte
 }
 
-func (*Object) SetInode(node *nodefs.Inode) {
+func (o *Object) SetInode(node *nodefs.Inode) {
 	fmt.Println("SetInode")
 }
 
