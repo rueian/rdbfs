@@ -48,6 +48,7 @@ func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fu
 	if err != nil {
 		return nil, utils.ConvertDaoErr(err)
 	}
+
 	return attr, fuse.OK
 }
 
@@ -102,6 +103,7 @@ func (fs *RdbFs) Rmdir(fullPath string, context *fuse.Context) fuse.Status {
 	if err := fs.Dao.RemoveObject(path, name); err != nil {
 		return utils.ConvertDaoErr(err)
 	}
+
 	return fuse.OK
 }
 
@@ -129,11 +131,13 @@ func (fs *RdbFs) Create(fullPath string, flags uint32, mode uint32, context *fus
 	if err != nil {
 		return nil, utils.ConvertDaoErr(err)
 	}
+
 	object.Attr.Ino = uint64(object.ID)
 	err = fs.Dao.UpdateAttr(object.ID, object.Attr)
 	if err != nil {
 		return nil, utils.ConvertDaoErr(err)
 	}
+
 	return object, fuse.OK
 }
 
@@ -144,6 +148,7 @@ func (fs *RdbFs) Unlink(fullPath string, context *fuse.Context) (code fuse.Statu
 	if err != nil {
 		return utils.ConvertDaoErr(err)
 	}
+
 	fmt.Println("Has linked? ", hasLinked)
 	if hasLinked {
 		if err := fs.Dao.UnlinkName(path, name); err != nil {
@@ -161,6 +166,7 @@ func (fs *RdbFs) Unlink(fullPath string, context *fuse.Context) (code fuse.Statu
 				return utils.ConvertDaoErr(err)
 			}
 		}
+
 		if err := fs.Dao.RemoveObject(path, name); err != nil {
 			return utils.ConvertDaoErr(err)
 		}
@@ -212,10 +218,9 @@ func (fs *RdbFs) Link(oldName string, newName string, context *fuse.Context) (co
 	if err != nil {
 		return utils.ConvertDaoErr(err)
 	}
-	oldpath, oldname := getPathAndNameFromFullPath(oldName)
 
-	object, err := fs.Dao.GetObject(oldpath, oldname)
-
+	oldPath, oldName := getPathAndNameFromFullPath(oldName)
+	object, err := fs.Dao.GetObject(oldPath, oldName)
 	if err != nil {
 		return utils.ConvertDaoErr(err)
 	}
@@ -321,15 +326,13 @@ func (fs *RdbFs) Symlink(value string, linkName string, context *fuse.Context) (
 	if err != nil {
 		return utils.ConvertDaoErr(err)
 	}
+
 	written, code := obj.Write([]byte(value), 0)
 	if written < 0 || code != fuse.OK {
-		return utils.ConvertDaoErr(err)
+		return fuse.EIO
 	}
-	code = obj.Flush()
-	if code != fuse.OK {
-		return utils.ConvertDaoErr(err)
-	}
-	return fuse.OK
+
+	return obj.Flush()
 }
 
 //
@@ -339,11 +342,13 @@ func (fs *RdbFs) Readlink(name string, context *fuse.Context) (string, fuse.Stat
 	if code != fuse.OK {
 		return "", code
 	}
+
 	attr := fuse.Attr{}
 	code = file.GetAttr(&attr)
 	if code != fuse.OK {
 		return "", code
 	}
+
 	buf := make([]byte, attr.Size)
 	rst, code := file.Read(buf, 0)
 	content, code := rst.Bytes(buf)
