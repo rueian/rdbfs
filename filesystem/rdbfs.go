@@ -38,7 +38,6 @@ func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fu
 	path, name := getPathAndNameFromFullPath(fullPath)
 	//fmt.Println("GetAttr: ", path, name)
 
-
 	if path == "/" && name == "" {
 		return &fuse.Attr{
 			Mode: fuse.S_IFDIR | 0755,
@@ -142,7 +141,7 @@ func (fs *RdbFs) Unlink(fullPath string, context *fuse.Context) (code fuse.Statu
 	path, name := getPathAndNameFromFullPath(fullPath)
 	fmt.Println("Unlink: ", path, name)
 	hasLinked, err := fs.Dao.HasLinkedObject(path, name)
-	if  err != nil {
+	if err != nil {
 		return utils.ConvertDaoErr(err)
 	}
 	fmt.Println("Has linked? ", hasLinked)
@@ -166,7 +165,6 @@ func (fs *RdbFs) Unlink(fullPath string, context *fuse.Context) (code fuse.Statu
 			return utils.ConvertDaoErr(err)
 		}
 	}
-
 
 	return fuse.OK
 }
@@ -235,6 +233,7 @@ func (fs *RdbFs) Link(oldName string, newName string, context *fuse.Context) (co
 
 	return fuse.OK
 }
+
 //
 //func (fs *RdbFs) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) fuse.Status {
 //	panic("implement me")
@@ -318,8 +317,7 @@ func (fs *RdbFs) Symlink(value string, linkName string, context *fuse.Context) (
 	fmt.Println("Symlink implement me", value, linkName)
 	path, name := getPathAndNameFromFullPath(linkName)
 
-
-	obj, err := fs.Dao.CreateObject(path, name, fuse.S_IFLNK | 420)
+	obj, err := fs.Dao.CreateObject(path, name, fuse.S_IFLNK|420)
 	if err != nil {
 		return utils.ConvertDaoErr(err)
 	}
@@ -333,6 +331,7 @@ func (fs *RdbFs) Symlink(value string, linkName string, context *fuse.Context) (
 	}
 	return fuse.OK
 }
+
 //
 func (fs *RdbFs) Readlink(name string, context *fuse.Context) (string, fuse.Status) {
 	fmt.Println("Readlink implement me", name)
@@ -345,7 +344,7 @@ func (fs *RdbFs) Readlink(name string, context *fuse.Context) (string, fuse.Stat
 	if code != fuse.OK {
 		return "", code
 	}
-	buf := make([]byte, attr.Size);
+	buf := make([]byte, attr.Size)
 	rst, code := file.Read(buf, 0)
 	content, code := rst.Bytes(buf)
 	fmt.Println("readed in readlink", string(buf), string(content))
@@ -355,6 +354,7 @@ func (fs *RdbFs) Readlink(name string, context *fuse.Context) (string, fuse.Stat
 
 	return string(content), fuse.OK
 }
+
 //
 //func (fs *RdbFs) StatFs(name string) *fuse.StatfsOut {
 //	panic("implement me")

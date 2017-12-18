@@ -3,15 +3,14 @@ package model
 import (
 	"database/sql"
 	"errors"
-
+	"fmt"
 	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/jinzhu/gorm"
-	"github.com/satori/go.uuid"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"fmt"
+	uuid "github.com/satori/go.uuid"
 )
 
 type Dao struct {
@@ -42,7 +41,6 @@ func (d *Dao) GetAttr(path, name string) (*fuse.Attr, error) {
 	if err != nil {
 		return &fuse.Attr{}, err
 	}
-
 	return &(object.Attr.Attr), nil
 }
 
@@ -132,7 +130,6 @@ func (d *Dao) CreateObject(path, name string, mode uint32) (*Object, error) {
 		return nil, err
 	}
 
-
 	return object, nil
 }
 
@@ -150,7 +147,7 @@ func (d *Dao) UnlinkName(path, name string) error {
 
 func (d *Dao) HasLinkedObject(path, name string) (bool, error) {
 	count := 0
-	err := d.DbConn.Model(Object{}).Where("link_id = ?", gorm.Expr("(select id from objects where path=? and name=?)", path, name)).Count(&count).Error
+	err := d.DbConn.Model(Object{}).Where("link_id = ?", gorm.Expr("(select id from objects where path = ? and name = ?)", path, name)).Count(&count).Error
 	// d.DbConn.Table("objects").Select("id").Where("path = ?", path).Where("name = ?", name).QueryExpr()
 	fmt.Println("HasLinkedObject", count)
 	if err != nil {
