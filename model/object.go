@@ -186,15 +186,24 @@ func (o *Object) GetAttr(out *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
-func (*Object) Chown(uid uint32, gid uint32) fuse.Status {
-	fmt.Println("implement Chown")
-	// TODO: update ctime
+func (o *Object) Chown(uid uint32, gid uint32) fuse.Status {
+	now := time.Now()
+	o.Attr.SetTimes(nil, nil, &now)
+	o.Attr.Gid = gid
+	o.Attr.Uid = uid
+	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return utils.ConvertDaoErr(err)
+	}
 	return fuse.OK
 }
 
-func (*Object) Chmod(perms uint32) fuse.Status {
-	fmt.Println("implement Chmod")
-	// TODO: update ctime
+func (o *Object) Chmod(perms uint32) fuse.Status {
+	now := time.Now()
+	o.Attr.Mode = (o.Attr.Mode &^ 07777) | perms
+	o.Attr.SetTimes(nil, nil, &now)
+	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return utils.ConvertDaoErr(err)
+	}
 	return fuse.OK
 }
 
