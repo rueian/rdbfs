@@ -169,6 +169,8 @@ func (o *Object) Truncate(size uint64) fuse.Status {
 
 	if size != o.Attr.Size {
 		o.Attr.Size = size
+		now := time.Now()
+		o.Attr.SetTimes(nil, nil, &now)
 		if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
 			return utils.ConvertDaoErr(err)
 		}
@@ -209,7 +211,8 @@ func (o *Object) Chmod(perms uint32) fuse.Status {
 
 func (o *Object) Utimens(atime *time.Time, mtime *time.Time) fuse.Status {
 	fmt.Println("Utimens")
-	o.Attr.SetTimes(atime, mtime, nil)
+	now := time.Now()
+	o.Attr.SetTimes(atime, mtime, &now)
 	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
 		return utils.ConvertDaoErr(err)
 	}
