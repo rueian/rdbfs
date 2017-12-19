@@ -219,8 +219,16 @@ func (fs *RdbFs) Chown(fullPath string, uid uint32, gid uint32, context *fuse.Co
 	return object.Chown(uid, gid)
 }
 
-func (fs *RdbFs) Utimens(name string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {
-	panic("implement me")
+func (fs *RdbFs) Utimens(fullPath string, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status) {
+	fmt.Print("Utimens")
+	path, name := getPathAndNameFromFullPath(fullPath)
+
+	object, err := fs.Dao.GetObject(path, name)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	return object.Utimens(atime, mtime)
 }
 
 //
