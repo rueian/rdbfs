@@ -3,6 +3,7 @@ package filesystem
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hanwen/go-fuse/fuse"
 	"github.com/hanwen/go-fuse/fuse/nodefs"
@@ -194,17 +195,42 @@ func (fs *RdbFs) Truncate(fullPath string, size uint64, context *fuse.Context) (
 //	panic("implement me")
 //}
 //
-//func (fs *RdbFs) Chmod(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
-//	panic("implement me")
-//}
-//
-//func (fs *RdbFs) Chown(name string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
-//	panic("implement me")
-//}
-//
-//func (fs *RdbFs) Utimens(name string, Atime *time.Time, Mtime *time.Time, context *fuse.Context) (code fuse.Status) {
-//	panic("implement me")
-//}
+func (fs *RdbFs) Chmod(fullPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
+	fmt.Println("Chmod", mode)
+	path, name := getPathAndNameFromFullPath(fullPath)
+
+	object, err := fs.Dao.GetObject(path, name)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	return object.Chmod(mode)
+}
+
+func (fs *RdbFs) Chown(fullPath string, uid uint32, gid uint32, context *fuse.Context) (code fuse.Status) {
+	fmt.Println("Chown", uid, gid)
+	path, name := getPathAndNameFromFullPath(fullPath)
+
+	object, err := fs.Dao.GetObject(path, name)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	return object.Chown(uid, gid)
+}
+
+func (fs *RdbFs) Utimens(fullPath string, atime *time.Time, mtime *time.Time, context *fuse.Context) (code fuse.Status) {
+	fmt.Print("Utimens")
+	path, name := getPathAndNameFromFullPath(fullPath)
+
+	object, err := fs.Dao.GetObject(path, name)
+	if err != nil {
+		return utils.ConvertDaoErr(err)
+	}
+
+	return object.Utimens(atime, mtime)
+}
+
 //
 //func (fs *RdbFs) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
 //	panic("implement me")

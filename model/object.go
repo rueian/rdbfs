@@ -83,7 +83,11 @@ func (o *Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	if err != nil {
 		return nil, utils.ConvertDaoErr(err)
 	}
-
+	now := time.Now()
+	o.Attr.SetTimes(&now, nil, nil)
+	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return nil, utils.ConvertDaoErr(err)
+	}
 	return fuse.ReadResultData(res), fuse.OK
 }
 
@@ -142,12 +146,13 @@ func (o *Object) Fsync(flags int) (code fuse.Status) {
 		}
 
 		o.Attr.Size = uint64(written) + uint64(o.FBufOffset)
+		now := time.Now()
+		o.Attr.SetTimes(nil, &now, &now)
 	}
 
 	o.FBufOffset = o.CurrOffset
 	o.CurrOffset = 0
 	o.FBuffer.Reset()
-
 	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
 		return utils.ConvertDaoErr(err)
 	}
@@ -164,6 +169,8 @@ func (o *Object) Truncate(size uint64) fuse.Status {
 
 	if size != o.Attr.Size {
 		o.Attr.Size = size
+		now := time.Now()
+		o.Attr.SetTimes(nil, nil, &now)
 		if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
 			return utils.ConvertDaoErr(err)
 		}
@@ -181,18 +188,34 @@ func (o *Object) GetAttr(out *fuse.Attr) fuse.Status {
 	return fuse.OK
 }
 
-func (*Object) Chown(uid uint32, gid uint32) fuse.Status {
-	fmt.Println("implement Chown")
+func (o *Object) Chown(uid uint32, gid uint32) fuse.Status {
+	now := time.Now()
+	o.Attr.SetTimes(nil, nil, &now)
+	o.Attr.Gid = gid
+	o.Attr.Uid = uid
+	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return utils.ConvertDaoErr(err)
+	}
 	return fuse.OK
 }
 
-func (*Object) Chmod(perms uint32) fuse.Status {
-	fmt.Println("implement Chmod")
+func (o *Object) Chmod(perms uint32) fuse.Status {
+	now := time.Now()
+	o.Attr.Mode = (o.Attr.Mode &^ 07777) | perms
+	o.Attr.SetTimes(nil, nil, &now)
+	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return utils.ConvertDaoErr(err)
+	}
 	return fuse.OK
 }
 
 func (o *Object) Utimens(atime *time.Time, mtime *time.Time) fuse.Status {
-	fmt.Println("implement Utimens")
+	fmt.Println("Utimens")
+	now := time.Now()
+	o.Attr.SetTimes(atime, mtime, &now)
+	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return utils.ConvertDaoErr(err)
+	}
 	return fuse.OK
 }
 
