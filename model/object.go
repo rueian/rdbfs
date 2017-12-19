@@ -199,7 +199,11 @@ func (*Object) Chmod(perms uint32) fuse.Status {
 }
 
 func (o *Object) Utimens(atime *time.Time, mtime *time.Time) fuse.Status {
-	fmt.Println("implement Utimens")
+	fmt.Println("Utimens")
+	o.Attr.SetTimes(atime, mtime, nil)
+	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return utils.ConvertDaoErr(err)
+	}
 	return fuse.OK
 }
 
