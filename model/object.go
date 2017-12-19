@@ -83,7 +83,11 @@ func (o *Object) Read(dest []byte, off int64) (fuse.ReadResult, fuse.Status) {
 	if err != nil {
 		return nil, utils.ConvertDaoErr(err)
 	}
-
+	now := time.Now()
+	o.Attr.SetTimes(&now, nil, nil)
+	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
+		return nil, utils.ConvertDaoErr(err)
+	}
 	return fuse.ReadResultData(res), fuse.OK
 }
 
@@ -142,12 +146,13 @@ func (o *Object) Fsync(flags int) (code fuse.Status) {
 		}
 
 		o.Attr.Size = uint64(written) + uint64(o.FBufOffset)
+		now := time.Now()
+		o.Attr.SetTimes(nil, &now, &now)
 	}
 
 	o.FBufOffset = o.CurrOffset
 	o.CurrOffset = 0
 	o.FBuffer.Reset()
-
 	if err := o.Dao.UpdateAttr(o.ID, o.Attr); err != nil {
 		return utils.ConvertDaoErr(err)
 	}
@@ -183,11 +188,13 @@ func (o *Object) GetAttr(out *fuse.Attr) fuse.Status {
 
 func (*Object) Chown(uid uint32, gid uint32) fuse.Status {
 	fmt.Println("implement Chown")
+	// TODO: update ctime
 	return fuse.OK
 }
 
 func (*Object) Chmod(perms uint32) fuse.Status {
 	fmt.Println("implement Chmod")
+	// TODO: update ctime
 	return fuse.OK
 }
 
