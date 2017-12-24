@@ -13,11 +13,24 @@ def createFolder(path, subpath):
         return False, e
 
 
-def createFolders(path, **subpath):
+def createFolders(path, *subpath):
     for sub in subpath:
         path = os.path.join(path, sub)
     try:
         os.makedirs(path, 0777)
         return True, 'success'
+    except Exception as e:
+        return False, e
+
+
+def renameFolder(srcpath, dstpath):
+
+    pass
+
+
+def deleteFolder(srcpath):
+    try:
+        os.removedirs(srcpath)
+        return True, "success"
     except Exception as e:
         return False, e
