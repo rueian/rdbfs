@@ -33,16 +33,58 @@ def itemOutput(item, path, filename, status):
         outputAnswer.failCheck(status[1])
 
 
+def editFile(initpath, srcfile):
+    outputAnswer.headerPrint('EDIT FILE')
+    status = filefun.editFile(initpath, srcfile, 'I am good guy\n')
+    msgOutput("editFile", status)
+    status = filefun.removeFile(initpath, srcfile)
+    msgOutput("removeFile", status)
+    return True
+
+
+def renameFile(initpath, srcfile, dstfile):
+    outputAnswer.headerPrint('REMOVE FILE')
+    status = filefun.editFile(initpath, srcfile, 'I am good guy\n')
+    msgOutput("editFile", status)
+    status = filefun.renameFile(initpath, srcfile, dstfile)
+    msgOutput("renameFile", status)
+    status = filefun.removeFile(initpath, dstfile)
+    itemOutput("removeFile", initpath, dstfile, status)
+    return True
+
+
+def editFileAndEditAgain(initpath, srcfile):
+    outputAnswer.headerPrint('EDIT FILE AND EDIT AGAIN')
+    status = filefun.editFile(initpath, srcfile, 'I am good guy\n')
+    msgOutput("editFile", status)
+    status = filefun.reEditFile(initpath, srcfile, 'actually not')
+    msgOutput("reEditFile", status)
+    status = filefun.removeFile(initpath, srcfile)
+    itemOutput("removeFile", initpath, srcfile, status)
+    return True
+
+
+def editFileAndEditAgainAndRename(initpath, srcfile, dstfile):
+    outputAnswer.headerPrint('EDIT FILE AND EDIT AGAIN AND RENAME')
+    status = filefun.editFile(initpath, srcfile, 'I am good guy\n')
+    msgOutput("editFile", status)
+    status = filefun.reEditFile(initpath, srcfile, 'actually not')
+    msgOutput("reEditFile", status)
+    status = filefun.renameFile(initpath, srcfile, dstfile)
+    msgOutput("renameFile", status)
+    status = filefun.removeFile(initpath, dstfile)
+    itemOutput("removeFile", initpath, dstfile, status)
+    return True
+
+
 def main():
     initpath = getPWD()
     status = general.checkInit(initpath)
     msgOutput("checkInit", status)
-    status = filefun.editFile(initpath, 'test1', 'I am good guy\n')
-    msgOutput("editFile", status)
-    status = filefun.renameFile(initpath, 'test1', 'test2')
-    msgOutput("renameFile", status)
-    status = filefun.removeFile(initpath, 'test2')
-    itemOutput("removeFile", initpath, 'test2', status)
+    editFile(initpath, 'test1')
+    renameFile(initpath, 'test1', 'test2')
+    editFileAndEditAgain(initpath, 'test1')
+    editFileAndEditAgainAndRename(initpath, 'test1', 'test2')
 
 
 if __name__ == '__main__':

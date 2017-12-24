@@ -37,20 +37,24 @@ class bColor:
 
 
 class outputAnswer(object):
+    def headerPrint(head):
+        print("HEADER: {}{}{}".format(bColor.HEADER, head, bColor.ENDC))
+        return True
+
     def itemPrint(item):
-        print("> item: {}{}{}".format(bColor.HEADER, item, bColor.ENDC))
+        print("> item: {}".format(item))
         return True
 
     def checkMsg(msg):
-        print("{}PASS{} {}".format(bColor.OKBLUE, bColor.ENDC, msg))
+        print("> {}PASS{} {}".format(bColor.OKBLUE, bColor.ENDC, msg))
         return True
 
     def passCheck(msg):
-        print("{}PASS{} {}".format(bColor.OKGREEN, bColor.ENDC, msg))
+        print("> {}PASS{} {}".format(bColor.OKGREEN, bColor.ENDC, msg))
         return True
 
     def failCheck(msg):
-        print("{}FAIL{} {}".format(bColor.FAIL, bColor.ENDC, msg))
+        print("> {}FAIL{} {}".format(bColor.FAIL, bColor.ENDC, msg))
         return True
 
 
