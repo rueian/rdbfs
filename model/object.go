@@ -26,12 +26,14 @@ func (a ObjectAttr) Value() (driver.Value, error) {
 }
 
 func (a *ObjectAttr) Scan(src interface{}) error {
-	b, ok := src.([]byte)
-	if !ok {
+	switch v := src.(type) {
+	case string:
+		return json.Unmarshal([]byte(v), a)
+	case []byte:
+		return json.Unmarshal(v, a)
+	default:
 		return errors.New(fmt.Sprint("Failed to unmarshal JSON value:", src))
 	}
-
-	return json.Unmarshal(b, a)
 }
 
 type ObjectXattr map[string]string
@@ -41,26 +43,28 @@ func (a ObjectXattr) Value() (driver.Value, error) {
 }
 
 func (a *ObjectXattr) Scan(src interface{}) error {
-	b, ok := src.([]byte)
-	if !ok {
+	switch v := src.(type) {
+	case string:
+		return json.Unmarshal([]byte(v), a)
+	case []byte:
+		return json.Unmarshal(v, a)
+	default:
 		return errors.New(fmt.Sprint("Failed to unmarshal JSON value:", src))
 	}
-
-	return json.Unmarshal(b, a)
 }
 
 type Object struct {
 	nodefs.File
-	Dao        *Dao         `gorm:"-"`
-	FBuffer    bytes.Buffer `gorm:"-"`
-	FBufOffset int64        `gorm:"-"`
-	CurrOffset int64        `gorm:"-"`
+	Dao        *Dao         `sql:"-"`
+	FBuffer    bytes.Buffer `sql:"-"`
+	FBufOffset int64        `sql:"-"`
+	CurrOffset int64        `sql:"-"`
 	ID         uint         `gorm:"primary_key"`
 	Path       string       `gorm:"unique_index:idx_path_name"`
 	Name       string       `gorm:"unique_index:idx_path_name"`
 	LinkID     int64        `gorm:"index:idx_link_id"`
-	Attr       ObjectAttr   `gorm:"type:json"`
-	Xattr      ObjectXattr  `gorm:"type:json"`
+	Attr       ObjectAttr   `gorm:"type:text"`
+	Xattr      ObjectXattr  `gorm:"type:text"`
 	Data       []byte
 }
 
