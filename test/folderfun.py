@@ -9,7 +9,8 @@ import shutil
 def createFolder(path, srcfolder):
     folderpath = os.path.join(path, srcfolder)
     try:
-        os.mkdir(folderpath, mode=0o755)
+        # os.mkdir(folderpath, mode=0777)
+        os.mkdir(folderpath)
         return True, 'success'
     except Exception as e:
         return False, e
@@ -19,7 +20,8 @@ def createFolders(path, *srcfolder):
     for sub in srcfolder:
         path = os.path.join(path, sub)
     try:
-        os.makedirs(path, mode=0o755)
+        # os.makedirs(path, mode=0777)
+        os.makedirs(path)
         return True, 'success'
     except Exception as e:
         return False, e

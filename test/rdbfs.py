@@ -7,6 +7,7 @@ import filefun
 import folderfun
 
 from general import outputAnswer
+from time import sleep
 
 
 def getPWD():
@@ -100,6 +101,7 @@ def renameFolder(initpath, srcfolder, dstfolder):
     outputAnswer.headerPrint('RENAME FOLDER')
     status = folderfun.createFolder(initpath, srcfolder)
     msgOutput("createFolder", status)
+    sleep(2)
     status = folderfun.renameFolder(initpath, srcfolder, dstfolder)
     msgOutput("renameFolder", status)
     finalstatus = folderfun.checkRenameFolder(initpath, srcfolder, dstfolder)
@@ -115,6 +117,7 @@ def changeFolderMode(initpath, srcfolder, Mode=0o644):
     msgOutput("createFolder", status)
     status = folderfun.checkFolderMode(initpath, srcfolder, '755')
     msgOutput("checkFolderMode", status)
+    sleep(2)
     status = folderfun.changeFolderMode(initpath, srcfolder, 0o644)
     msgOutput("changeFolderMode", status)
     finalstatus = folderfun.checkFolderMode(initpath, srcfolder, '644')
