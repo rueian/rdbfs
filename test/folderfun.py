@@ -2,7 +2,6 @@
 # -*- coding: UTF-8 -*-
 
 import os
-import stat
 import shutil
 
 
@@ -40,6 +39,20 @@ def renameFolder(path, srcfolder, detfolder):
         return False, "{} is not exist".format(srcfolderpath)
 
 
+def copyWholeFolder(path, srcfolder, dstfolder):
+    srcfolderpath = os.path.join(path, srcfolder)
+    dstfolderpath = os.path.join(path, dstfolder)
+    if os.path.isdir(srcfolderpath) and os.path.isdir(dstfolderpath):
+        dstfolderpath = os.path.join(dstfolderpath, srcfolder)
+        try:
+            shutil.copytree(srcfolderpath, dstfolderpath)
+        except Exception as e:
+            return False, e
+        return True, 'success'
+    else:
+        return False, "{} or {} is not exist".format(srcfolder, dstfolder)
+
+
 def changeFolderMode(path, srcfolder, mode=0o644):
     folderpath = os.path.join(path, srcfolder)
     if os.path.isdir(folderpath):
@@ -75,7 +88,12 @@ def removeWholeFolder(path, srcfolder):
 
 
 def checkFolderExist(path, srcfolder):
-    folderpath = os.path.join(path, srcfolder)
+    if type(srcfolder) is list:
+        for val in srcfolder:
+            path = os.path.join(path, val)
+        folderpath = path
+    else:
+        folderpath = os.path.join(path, srcfolder)
     if os.path.isdir(folderpath):
         return True, "Check success"
     return False, "{} is not exist".format(folderpath)

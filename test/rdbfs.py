@@ -101,7 +101,7 @@ def renameFolder(initpath, srcfolder, dstfolder):
     outputAnswer.headerPrint('RENAME FOLDER')
     status = folderfun.createFolder(initpath, srcfolder)
     msgOutput("createFolder", status)
-    sleep(2)
+    sleep(1)
     status = folderfun.renameFolder(initpath, srcfolder, dstfolder)
     msgOutput("renameFolder", status)
     finalstatus = folderfun.checkRenameFolder(initpath, srcfolder, dstfolder)
@@ -117,7 +117,7 @@ def changeFolderMode(initpath, srcfolder, Mode=0o644):
     msgOutput("createFolder", status)
     status = folderfun.checkFolderMode(initpath, srcfolder, '755')
     msgOutput("checkFolderMode", status)
-    sleep(2)
+    sleep(1)
     status = folderfun.changeFolderMode(initpath, srcfolder, 0o644)
     msgOutput("changeFolderMode", status)
     finalstatus = folderfun.checkFolderMode(initpath, srcfolder, '644')
@@ -125,6 +125,44 @@ def changeFolderMode(initpath, srcfolder, Mode=0o644):
     msgOutput("removeFolder", status)
     msgFinalOutput(finalstatus)
     return True
+
+
+def copyFileToFolder(initpath, srcfile, srcfolder):
+    outputAnswer.headerPrint('COPY FILE TO FOLDER')
+    status = folderfun.createFolder(initpath, srcfolder)
+    msgOutput("createFolder", status)
+    status = filefun.editFile(initpath, srcfile, 'I am good guy\n')
+    msgOutput("editFile", status)
+    sleep(1)
+    status = filefun.copyFileToFolder(initpath, srcfile, srcfolder)
+    msgOutput("copyFileToFolder", status)
+    status = filefun.removeFile(initpath, srcfile)
+    msgOutput("removeFile", status)
+    fileList = [srcfolder, srcfile]
+    finalstatus = filefun.checkFileExist(initpath, fileList)
+    status = folderfun.removeWholeFolder(initpath, srcfolder)
+    msgOutput("removeWholeFolder", status)
+    msgFinalOutput(finalstatus)
+    return True
+
+
+def copyFolderToFolder(initpath, srcfolder, dstfolder):
+    outputAnswer.headerPrint('COPY FOLDER TO FOLDER')
+    status = folderfun.createFolder(initpath, srcfolder)
+    msgOutput("createFolder", status)
+    status = folderfun.createFolder(initpath, dstfolder)
+    msgOutput("createFolder", status)
+    sleep(1)
+    status = folderfun.copyWholeFolder(initpath, srcfolder, dstfolder)
+    msgOutput("copyWholeFolder", status)
+    input("ENTER...")
+    folderList = [dstfolder, srcfolder]
+    finalstatus = folderfun.checkFolderExist(initpath, folderList)
+    status = folderfun.removeWholeFolder(initpath, dstfolder)
+    msgOutput("removeWholeFolder", status)
+    status = folderfun.removeWholeFolder(initpath, srcfolder)
+    msgOutput("removeWholeFolder", status)
+    msgFinalOutput(finalstatus)
 
 
 def main():
@@ -140,6 +178,9 @@ def main():
     createFolder(initpath, 'testF1')
     renameFolder(initpath, 'testF1', 'testF2')
     changeFolderMode(initpath, 'testF1')
+    # file & folder
+    copyFileToFolder(initpath, 'test1', 'testF1')
+    copyFolderToFolder(initpath, 'testF1', 'testF2')
 
 
 if __name__ == '__main__':

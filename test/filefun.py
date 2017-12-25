@@ -65,18 +65,22 @@ def copyFile(path, topath):
             return False, e
 
 
-def copyFileToFolder(path, folderpath):
-    if os.path.isfile(path) and os.path.isdir(folderpath):
+def copyFileToFolder(path, srcfile, dstfolder):
+    srcpath = os.path.join(path, srcfile)
+    dstpath = os.path.join(path, dstfolder)
+    if os.path.isfile(srcpath) and os.path.isdir(dstpath):
+        dstpath = os.path.join(path, dstfolder, srcfile)
         try:
-            shutil.copy(path, folderpath)
+            shutil.copy(srcpath, dstpath)
             return True, "success"
         except Exception as e:
             return False, e
 
 
 def checkFileExist(path, filename):
-    filepath = os.path.join(path, filename)
-    if os.path.isfile(filepath):
+    for val in filename:
+        path = os.path.join(path, val)
+    if os.path.isfile(path):
         return True, "Check success"
     return False, "File is not exist"
 
