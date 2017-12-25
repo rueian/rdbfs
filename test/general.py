@@ -46,11 +46,11 @@ class outputAnswer(object):
         return True
 
     def checkMsg(msg):
-        print("> {}PASS{} {}".format(bColor.OKBLUE, bColor.ENDC, msg))
+        print(">> {}PASS{} {}".format(bColor.OKGREEN, bColor.ENDC, msg))
         return True
 
     def passCheck(msg):
-        print(">> {}PASS{} {}".format(bColor.OKGREEN, bColor.ENDC, msg))
+        print(">> {}PASS{} {}".format(bColor.OKBLUE, bColor.ENDC, msg))
         return True
 
     def failCheck(msg):

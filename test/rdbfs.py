@@ -4,6 +4,7 @@
 import os
 import general
 import filefun
+import folderfun
 
 from general import outputAnswer
 
@@ -17,6 +18,13 @@ def msgOutput(item, status):
     outputAnswer.itemPrint(item)
     if status[0] is True:
         outputAnswer.passCheck(status[1])
+    else:
+        outputAnswer.failCheck(status[1])
+
+
+def msgFinalOutput(status):
+    if status[0] is True:
+        outputAnswer.checkMsg(status[1])
     else:
         outputAnswer.failCheck(status[1])
 
@@ -77,14 +85,58 @@ def editFileAndEditAgainAndRename(initpath, srcfile, dstfile):
     return True
 
 
+def createFolder(initpath, srcfolder):
+    outputAnswer.headerPrint('CREATE FOLDER')
+    status = folderfun.createFolder(initpath, srcfolder)
+    msgOutput("createFolder", status)
+    finalstatus = folderfun.checkFolderExist(initpath, srcfolder)
+    status = folderfun.removeFolder(initpath, srcfolder)
+    msgOutput("removeFolder", status)
+    msgFinalOutput(finalstatus)
+    return True
+
+
+def renameFolder(initpath, srcfolder, dstfolder):
+    outputAnswer.headerPrint('RENAME FOLDER')
+    status = folderfun.createFolder(initpath, srcfolder)
+    msgOutput("createFolder", status)
+    status = folderfun.renameFolder(initpath, srcfolder, dstfolder)
+    msgOutput("renameFolder", status)
+    finalstatus = folderfun.checkRenameFolder(initpath, srcfolder, dstfolder)
+    status = folderfun.removeFolder(initpath, dstfolder)
+    msgOutput("removeFolder", status)
+    msgFinalOutput(finalstatus)
+    return True
+
+
+def changeFolderMode(initpath, srcfolder, Mode=0o644):
+    outputAnswer.headerPrint('CHANGE FOLDER MODE')
+    status = folderfun.createFolder(initpath, srcfolder)
+    msgOutput("createFolder", status)
+    status = folderfun.checkFolderMode(initpath, srcfolder, '755')
+    msgOutput("checkFolderMode", status)
+    status = folderfun.changeFolderMode(initpath, srcfolder, 0o644)
+    msgOutput("changeFolderMode", status)
+    finalstatus = folderfun.checkFolderMode(initpath, srcfolder, '644')
+    status = folderfun.removeFolder(initpath, srcfolder)
+    msgOutput("removeFolder", status)
+    msgFinalOutput(finalstatus)
+    return True
+
+
 def main():
     initpath = getPWD()
     status = general.checkInit(initpath)
     msgOutput("checkInit", status)
+    # file test
     editFile(initpath, 'test1')
     renameFile(initpath, 'test1', 'test2')
     editFileAndEditAgain(initpath, 'test1')
     editFileAndEditAgainAndRename(initpath, 'test1', 'test2')
+    # folder test
+    createFolder(initpath, 'testF1')
+    renameFolder(initpath, 'testF1', 'testF2')
+    changeFolderMode(initpath, 'testF1')
 
 
 if __name__ == '__main__':
