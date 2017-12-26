@@ -162,9 +162,16 @@ func (fs *RdbFs) Unlink(fullPath string, context *fuse.Context) (code fuse.Statu
 		}
 		// Last one link to object, remove old object too
 		if linkTo != 0 {
-			err = fs.Dao.RemoveObjectById(uint(linkTo))
+			linkedCount, err := fs.Dao.GetLinkedObjectCountById(uint(linkTo))
+			fmt.Println("linkedCount", linkedCount)
 			if err != nil {
 				return utils.ConvertDaoErr(err)
+			}
+			if linkedCount == 1 { // only link to self
+				err = fs.Dao.RemoveObjectById(uint(linkTo))
+				if err != nil {
+					return utils.ConvertDaoErr(err)
+				}
 			}
 		}
 

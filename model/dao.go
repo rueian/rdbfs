@@ -157,6 +157,18 @@ func (d *Dao) HasLinkedObject(path, name string) (bool, error) {
 	return count > 0, nil
 }
 
+func (d *Dao) GetLinkedObjectCountById(id uint) (uint, error) {
+	var count uint
+	err := d.DbConn.Model(Object{}).Where("link_id = ?", id).Count(&count).Error
+	// d.DbConn.Table("objects").Select("id").Where("path = ?", path).Where("name = ?", name).QueryExpr()
+	fmt.Println("HasLinkedObject", count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
 func (d *Dao) RemoveObject(path, name string) error {
 	if err := d.DbConn.Where("path = ?", path).Where("name = ?", name).Delete(Object{}).Error; err != nil {
 		return err
