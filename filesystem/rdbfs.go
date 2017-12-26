@@ -37,7 +37,6 @@ func getPathAndNameFromFullPath(fullPath string) (string, string) {
 
 func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fuse.Status) {
 	path, name := getPathAndNameFromFullPath(fullPath)
-	//fmt.Println("GetAttr: ", path, name)
 
 	if path == "/" && name == "" {
 		return &fuse.Attr{
@@ -55,7 +54,7 @@ func (fs *RdbFs) GetAttr(fullPath string, context *fuse.Context) (*fuse.Attr, fu
 
 func (fs *RdbFs) OpenDir(fullPath string, context *fuse.Context) (c []fuse.DirEntry, code fuse.Status) {
 	fullPath = formatDirPath(fullPath)
-	//fmt.Println("OpenDir: ", fullPath)
+	fmt.Println("OpenDir: ", fullPath)
 
 	objects, err := fs.Dao.GetSubTree(fullPath)
 	if err != nil {
@@ -89,7 +88,7 @@ func (fs *RdbFs) Mkdir(fullPath string, mode uint32, context *fuse.Context) fuse
 	path, name := getPathAndNameFromFullPath(fullPath)
 	fmt.Println("Mkdir: ", path, name)
 
-	_, err := fs.Dao.CreateObject(path, name, mode)
+	_, err := fs.Dao.CreateObject(path, name, 16877)
 	if err != nil {
 		return utils.ConvertDaoErr(err)
 	}
@@ -194,14 +193,14 @@ func (fs *RdbFs) Truncate(fullPath string, size uint64, context *fuse.Context) (
 	return object.Truncate(size)
 }
 
-//func (fs *RdbFs) String() string {
-//	panic("implement me")
-//}
-//
-//func (fs *RdbFs) SetDebug(debug bool) {
-//	panic("implement me")
-//}
-//
+func (fs *RdbFs) String() string {
+	return "rdbfs"
+}
+
+func (fs *RdbFs) SetDebug(debug bool) {
+
+}
+
 func (fs *RdbFs) Chmod(fullPath string, mode uint32, context *fuse.Context) (code fuse.Status) {
 	fmt.Println("Chmod", mode)
 	path, name := getPathAndNameFromFullPath(fullPath)
@@ -238,11 +237,12 @@ func (fs *RdbFs) Utimens(fullPath string, atime *time.Time, mtime *time.Time, co
 	return object.Utimens(atime, mtime)
 }
 
-//
-//func (fs *RdbFs) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
-//	panic("implement me")
-//}
-//
+func (fs *RdbFs) Access(name string, mode uint32, context *fuse.Context) (code fuse.Status) {
+	fmt.Println("Access implement")
+
+	return fuse.OK
+}
+
 func (fs *RdbFs) Link(oldName string, newName string, context *fuse.Context) (code fuse.Status) {
 	fmt.Println("Link implement me", oldName, newName)
 	path, name := getPathAndNameFromFullPath(newName)
@@ -272,11 +272,12 @@ func (fs *RdbFs) Link(oldName string, newName string, context *fuse.Context) (co
 	return fuse.OK
 }
 
-//
-//func (fs *RdbFs) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) fuse.Status {
-//	panic("implement me")
-//}
-//
+func (fs *RdbFs) Mknod(name string, mode uint32, dev uint32, context *fuse.Context) fuse.Status {
+	fmt.Println("Mknod implement")
+
+	return fuse.OK
+}
+
 func (fs *RdbFs) GetXAttr(fullPath string, attribute string, context *fuse.Context) (data []byte, code fuse.Status) {
 	path, name := getPathAndNameFromFullPath(fullPath)
 
@@ -342,15 +343,14 @@ func (fs *RdbFs) SetXAttr(fullPath string, attr string, data []byte, flags int, 
 	return fuse.OK
 }
 
-//
-//func (fs *RdbFs) OnMount(nodeFs *pathfs.PathNodeFs) {
-//	panic("implement me")
-//}
-//
-//func (fs *RdbFs) OnUnmount() {
-//	panic("implement me")
-//}
-//
+func (fs *RdbFs) OnMount(nodeFs *pathfs.PathNodeFs) {
+	fmt.Println("OnMount")
+}
+
+func (fs *RdbFs) OnUnmount() {
+	fmt.Println("OnUnmount")
+}
+
 func (fs *RdbFs) Symlink(value string, linkName string, context *fuse.Context) (code fuse.Status) {
 	fmt.Println("Symlink implement me", value, linkName)
 	path, name := getPathAndNameFromFullPath(linkName)
@@ -368,7 +368,6 @@ func (fs *RdbFs) Symlink(value string, linkName string, context *fuse.Context) (
 	return obj.Flush()
 }
 
-//
 func (fs *RdbFs) Readlink(name string, context *fuse.Context) (string, fuse.Status) {
 	fmt.Println("Readlink implement me", name)
 	file, code := fs.Open(name, 0, context)
@@ -393,7 +392,8 @@ func (fs *RdbFs) Readlink(name string, context *fuse.Context) (string, fuse.Stat
 	return string(content), fuse.OK
 }
 
-//
-//func (fs *RdbFs) StatFs(name string) *fuse.StatfsOut {
-//	panic("implement me")
-//}
+func (fs *RdbFs) StatFs(fullPath string) *fuse.StatfsOut {
+	fmt.Println("StatFs", fullPath)
+
+	return &fuse.StatfsOut{}
+}

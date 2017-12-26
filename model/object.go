@@ -193,6 +193,7 @@ func (o *Object) GetAttr(out *fuse.Attr) fuse.Status {
 }
 
 func (o *Object) Chown(uid uint32, gid uint32) fuse.Status {
+	fmt.Println("Chown", uid, gid)
 	now := time.Now()
 	o.Attr.SetTimes(nil, nil, &now)
 	o.Attr.Gid = gid

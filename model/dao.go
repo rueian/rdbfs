@@ -113,6 +113,7 @@ func (d *Dao) GetObjectById(id uint) (*Object, error) {
 }
 
 func (d *Dao) CreateObject(path, name string, mode uint32) (*Object, error) {
+	fmt.Println("CreateObject", path, name, mode)
 	object := &Object{
 		Dao:  d,
 		Path: path,

@@ -11,6 +11,6 @@ func ConvertDaoErr(err error) fuse.Status {
 	if err == gorm.ErrRecordNotFound {
 		return fuse.ENOENT
 	}
-	fmt.Println(err)
+	fmt.Println("ConvertDaoErr", err)
 	return fuse.EIO
 }
