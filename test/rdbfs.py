@@ -165,6 +165,12 @@ def copyFolderToFolder(initpath, srcfolder, dstfolder):
     msgFinalOutput(finalstatus)
 
 
+def testLink():
+    import subprocess
+    s=subprocess.check_output('./testlink.sh')
+    print(s.decode("utf-8"))
+
+
 def main():
     initpath = getPWD()
     status = general.checkInit(initpath)
@@ -181,7 +187,8 @@ def main():
     # file & folder
     copyFileToFolder(initpath, 'test1', 'testF1')
     copyFolderToFolder(initpath, 'testF1', 'testF2')
-
+    # test sym/hard link
+    testLink()
 
 if __name__ == '__main__':
     main()
