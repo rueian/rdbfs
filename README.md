@@ -1,5 +1,18 @@
 # RDBFS
-Corrently support darwin kernel (macOS) with PostgreSQL
+Using FUSE interface to build a filesystem on Relational Database.
+
+# Features
+Full FUSE implementation:
+
+All normal file system tools are supported. (mv, rm, cp, gzip, etc…)
+
+Support MySQL and PostgreSQL as backend database.
+Take full advantage of relational database, for examples:
+* Multiple devices can mount the filesystem at the same time via the Internet.
+* Point in Time Recovery by saving snapshots and write ahead logs of database.
+* Scale up read throughput by adding more replication slaves.
+* Data redundancy with replication slaves for High Availability.
+
 
 # build
 1. install [FUSE](https://osxfuse.github.io/)
