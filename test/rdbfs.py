@@ -167,7 +167,7 @@ def copyFolderToFolder(initpath, srcfolder, dstfolder):
 
 def testLink():
     import subprocess
-    s=subprocess.check_output('./testlink.sh')
+    s=subprocess.check_output(os.path.dirname(os.path.abspath(__file__))+'/testlink.sh')
     print(s.decode("utf-8"))
 
 
